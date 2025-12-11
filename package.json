@@ -10,7 +10,10 @@
     "start": "node dist/index.js",
     "mcp:dev": "tsx src/mcp/server.ts",
     "test": "jest",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "demo": "tsx examples/demo-workflow.ts",
+    "demo:simple": "tsx examples/simple-campaign.ts",
+    "demo:test": "tsx examples/test-components.ts"
   },
   "keywords": [
     "ai",
