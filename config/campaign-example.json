@@ -1,0 +1,122 @@
+{
+  "name": "Tech Executive Outreach - Q1 2025",
+  "description": "Targeting VP and Director level executives at mid-size tech companies",
+  "icpCriteria": {
+    "titles": [
+      "VP of Sales",
+      "VP Sales",
+      "Director of Sales",
+      "Head of Sales",
+      "Chief Revenue Officer",
+      "CRO"
+    ],
+    "seniority": ["VP", "Director", "C-Level"],
+    "companySize": {
+      "min": 50,
+      "max": 500
+    },
+    "locations": [
+      "United States",
+      "Canada",
+      "United Kingdom"
+    ],
+    "industries": [
+      "Computer Software",
+      "Information Technology",
+      "SaaS",
+      "Technology"
+    ],
+    "techStack": [
+      "Salesforce",
+      "HubSpot",
+      "Outreach"
+    ],
+    "excludedCompanies": [
+      "Competitor A",
+      "Competitor B"
+    ],
+    "excludedTitles": [
+      "intern",
+      "assistant",
+      "coordinator"
+    ]
+  },
+  "sequences": [
+    {
+      "name": "Main LinkedIn Sequence",
+      "channel": "linkedin_message",
+      "steps": [
+        {
+          "stepNumber": 1,
+          "channel": "linkedin_connection",
+          "delayHours": 0,
+          "messageTemplate": "Hi {firstName}, I noticed your work at {company} and would love to connect!",
+          "aiGenerated": false
+        },
+        {
+          "stepNumber": 2,
+          "channel": "linkedin_message",
+          "delayHours": 48,
+          "conditions": [
+            {
+              "type": "reply",
+              "action": "pause"
+            }
+          ],
+          "aiGenerated": true
+        },
+        {
+          "stepNumber": 3,
+          "channel": "linkedin_message",
+          "delayHours": 96,
+          "conditions": [
+            {
+              "type": "no_reply",
+              "action": "continue"
+            }
+          ],
+          "aiGenerated": true
+        }
+      ]
+    },
+    {
+      "name": "Email Backup Sequence",
+      "channel": "email",
+      "steps": [
+        {
+          "stepNumber": 1,
+          "channel": "email",
+          "delayHours": 168,
+          "conditions": [
+            {
+              "type": "no_reply",
+              "action": "continue"
+            }
+          ],
+          "aiGenerated": true
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "dailyLimit": 50,
+    "messageDelaySeconds": 120,
+    "autoFollowUp": true,
+    "autoTagging": true,
+    "autoSend": false,
+    "safeguards": {
+      "maxDailyLinkedInConnections": 50,
+      "maxDailyLinkedInMessages": 100,
+      "maxDailyEmails": 200,
+      "enableProxyRotation": true,
+      "enableBehavioralSimulation": true,
+      "spamFilterEnabled": true
+    }
+  },
+  "goals": {
+    "targetLeads": 500,
+    "targetReplyRate": 0.15,
+    "targetConversionRate": 0.05,
+    "targetMeetingsBooked": 25
+  }
+}
