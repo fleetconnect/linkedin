@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Sarah Johnson",
+    "title": "VP of Engineering",
+    "company": "TechCorp Solutions",
+    "industry": "Technology",
+    "linkedin_url": "https://linkedin.com/in/sarahjohnson"
+  },
+  {
+    "name": "Michael Chen",
+    "title": "Director of Product",
+    "company": "InnovateLabs",
+    "industry": "SaaS",
+    "linkedin_url": "https://linkedin.com/in/michaelchen"
+  },
+  {
+    "name": "Emily Rodriguez",
+    "title": "Head of Sales",
+    "company": "Growth Dynamics",
+    "industry": "Marketing",
+    "linkedin_url": "https://linkedin.com/in/emilyrodriguez"
+  },
+  {
+    "name": "David Park",
+    "title": "CTO",
+    "company": "CloudScale Inc",
+    "industry": "Cloud Infrastructure",
+    "linkedin_url": "https://linkedin.com/in/davidpark"
+  },
+  {
+    "name": "Jessica Williams",
+    "title": "VP of Customer Success",
+    "company": "ServicePro",
+    "industry": "Customer Experience",
+    "linkedin_url": "https://linkedin.com/in/jessicawilliams"
+  }
+]

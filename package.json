@@ -1,0 +1,26 @@
+{
+  "name": "heyreach-claude-integration",
+  "version": "1.0.0",
+  "description": "HeyReach and Claude AI integration for LinkedIn outreach automation",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node src/test.js",
+    "create-campaign": "node src/create-campaign.js"
+  },
+  "keywords": [
+    "heyreach",
+    "claude",
+    "linkedin",
+    "automation",
+    "outreach"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "@anthropic-ai/sdk": "^0.27.0"
+  }
+}
