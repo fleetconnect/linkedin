@@ -7,6 +7,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../../utils/config.js';
 import { logger } from '../../utils/logger.js';
+import {
+  ReplySentiment,
+  ReplyIntent,
+  InsightCategory,
+} from '../../types/index.js';
 import type {
   FeedbackData,
   CampaignInsight,
@@ -14,9 +19,6 @@ import type {
   Pattern,
   Recommendation,
   Reply,
-  ReplySentiment,
-  ReplyIntent,
-  InsightCategory,
 } from '../../types/index.js';
 
 export class FeedbackLoop {
@@ -132,7 +134,7 @@ Provide classification in JSON format:
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-sonnet-20240229',
         max_tokens: 512,
         messages: [{ role: 'user', content: prompt }],
       });
@@ -279,7 +281,7 @@ Provide 3-5 insights in JSON array format:
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-sonnet-20240229',
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }],
       });

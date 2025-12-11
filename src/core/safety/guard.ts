@@ -5,7 +5,8 @@
 
 import { logger } from '../../utils/logger.js';
 import { containsSpamIndicators } from '../../utils/validators.js';
-import type { SafeguardSettings, Channel } from '../../types/index.js';
+import { Channel } from '../../types/index.js';
+import type { SafeguardSettings } from '../../types/index.js';
 
 interface UsageTracker {
   date: string;

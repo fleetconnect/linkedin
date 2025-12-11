@@ -8,11 +8,13 @@ import { parse } from 'csv-parse/sync';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../../utils/logger.js';
 import { leadSchema, icpCriteriaSchema } from '../../utils/validators.js';
+import {
+  LeadStatus,
+} from '../../types/index.js';
 import type {
   Lead,
   ICPCriteria,
   LeadValidationResult,
-  LeadStatus,
 } from '../../types/index.js';
 
 export class LeadManager {

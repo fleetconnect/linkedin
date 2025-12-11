@@ -42,7 +42,7 @@ export class PersonalizationEngine {
       const prompt = this.buildPrompt(context, params.stepNumber);
 
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-sonnet-20240229',
         max_tokens: 1024,
         messages: [
           {
@@ -92,7 +92,7 @@ export class PersonalizationEngine {
 
       try {
         const response = await this.anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-3-sonnet-20240229',
           max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }],
         });
@@ -141,7 +141,7 @@ Respond in JSON format:
 }`;
 
     const response = await this.anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-sonnet-20240229',
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -300,7 +300,7 @@ Respond in JSON format:
     const strictPrompt = this.buildPrompt(context) + `\n\nIMPORTANT: The previous attempt failed because: ${issue}. Please ensure you avoid this issue.`;
 
     const response = await this.anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-sonnet-20240229',
       max_tokens: 1024,
       messages: [{ role: 'user', content: strictPrompt }],
     });
