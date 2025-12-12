@@ -18,6 +18,11 @@ import { PersonalizationEngine } from '../core/personalization/engine.js';
 import { CampaignOrchestrator } from '../core/campaigns/orchestrator.js';
 import { FeedbackLoop } from '../core/feedback/loop.js';
 import { SafetyGuard } from '../core/safety/guard.js';
+import { queryPerplexity, buildResearchPrompt } from '../clients/perplexity.js';
+import {
+  extractStructuredResearch,
+  createFallbackResearch,
+} from '../clients/perplexity-extractors.js';
 import { config } from '../utils/config.js';
 import { logger } from '../utils/logger.js';
 import type { MCPToolResult } from '../types/index.js';
@@ -76,6 +81,8 @@ class OutreachMCPServer {
             return await this.handleImportLeads(args);
           case 'validate_leads':
             return await this.handleValidateLeads(args);
+          case 'research_lead':
+            return await this.handleResearchLead(args);
           case 'get_campaign_status':
             return await this.handleGetCampaignStatus(args);
           case 'generate_message':
@@ -155,6 +162,37 @@ class OutreachMCPServer {
             },
           },
           required: ['leadIds'],
+        },
+      },
+      {
+        name: 'research_lead',
+        description:
+          'Research a lead using Perplexity AI to gather real-time market intelligence, company signals, role-specific pain points, and buying triggers',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            company_name: {
+              type: 'string',
+              description: 'Company name to research',
+            },
+            company_domain: {
+              type: 'string',
+              description: 'Company domain (optional, helps with accuracy)',
+            },
+            role: {
+              type: 'string',
+              description: 'Target role/title (optional, e.g., VP of Sales)',
+            },
+            industry: {
+              type: 'string',
+              description: 'Industry (optional, e.g., SaaS, Healthcare)',
+            },
+            region: {
+              type: 'string',
+              description: 'Geographic region (optional, e.g., North America)',
+            },
+          },
+          required: ['company_name'],
         },
       },
       {
@@ -367,6 +405,66 @@ class OutreachMCPServer {
     return {
       content: [{ type: 'text', text: JSON.stringify({ success: true, data: results } as MCPToolResult) }],
     };
+  }
+
+  private async handleResearchLead(args: any) {
+    try {
+      // Build research prompt
+      const prompt = buildResearchPrompt({
+        company_name: args.company_name,
+        company_domain: args.company_domain,
+        role: args.role,
+        industry: args.industry,
+        region: args.region,
+      });
+
+      // Query Perplexity
+      const rawResponse = await queryPerplexity(prompt);
+
+      // Extract structured data
+      const structuredResearch = extractStructuredResearch(rawResponse);
+
+      logger.info('Lead research completed', {
+        company: args.company_name,
+        confidence: structuredResearch.confidence,
+        signals_found: structuredResearch.company_signals.length,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              data: structuredResearch,
+            } as MCPToolResult),
+          },
+        ],
+      };
+    } catch (error) {
+      logger.error('Lead research failed', {
+        company: args.company_name,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      // Return fallback with low confidence
+      const fallback = createFallbackResearch(
+        args.company_name,
+        error instanceof Error ? error.message : 'Research failed'
+      );
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              data: fallback,
+            } as MCPToolResult),
+          },
+        ],
+      };
+    }
   }
 
   private async handleGetCampaignStatus(args: any) {

@@ -56,6 +56,7 @@ The system consists of six core components:
 - Node.js >= 18.0.0
 - HeyReach API key
 - Anthropic API key (for Claude)
+- Perplexity API key (optional, for real-time lead research)
 
 ### Installation
 
@@ -81,6 +82,7 @@ cp .env.example .env
    ```env
    HEYREACH_API_KEY=your_heyreach_api_key
    ANTHROPIC_API_KEY=your_anthropic_api_key
+   PERPLEXITY_API_KEY=your_perplexity_api_key  # Optional, for lead research
 
    # Safety Limits
    MAX_DAILY_LINKEDIN_CONNECTIONS=100
@@ -278,6 +280,7 @@ When running as an MCP server, Claude has access to these tools:
 
 - `import_leads` - Import and enrich leads from CSV or API
 - `validate_leads` - Validate leads against ICP criteria
+- `research_lead` - **NEW** Research leads using Perplexity AI for real-time market intelligence
 - `get_campaign_status` - Get current status and metrics
 - `generate_message` - Generate personalized message using AI
 - `send_message` - Send a message through HeyReach
@@ -287,6 +290,46 @@ When running as an MCP server, Claude has access to these tools:
 - `get_insights` - Get AI-generated insights and recommendations
 - `update_lead_status` - Update the status of a lead
 - `check_safety_limits` - Check if an action would exceed safety limits
+
+### Research Lead Tool
+
+The `research_lead` tool uses Perplexity AI to gather real-time market intelligence about leads:
+
+```typescript
+// Claude usage example:
+const research = await research_lead({
+  company_name: 'Salesforce',
+  company_domain: 'salesforce.com',
+  role: 'VP of Sales',
+  industry: 'SaaS',
+  region: 'North America'
+});
+
+// Returns structured signals:
+{
+  company_signals: [
+    'Salesforce announced record Q4 2024 revenue of $9.29 billion',
+    'Hiring 500+ new sales representatives across enterprise segment',
+    'Launched new Einstein AI features for sales automation'
+  ],
+  market_signals: [
+    'CRM market expected to grow 12% annually through 2026',
+    'Increased competition from HubSpot and Microsoft Dynamics'
+  ],
+  role_pains: [
+    'VPs of Sales face pressure to increase pipeline velocity',
+    'Challenge of training large sales teams on new tools'
+  ],
+  buying_triggers: [
+    'Q1 typically highest budget allocation period for sales tools',
+    'Leadership committed to AI-first sales strategy'
+  ],
+  sources: ['https://investor.salesforce.com/financials/', ...],
+  confidence: 0.85
+}
+```
+
+**Configuration**: Add `PERPLEXITY_API_KEY` to your `.env` file to enable this feature.
 
 ## 📊 Campaign Metrics
 
@@ -342,11 +385,24 @@ linkedin/
 │   │   └── server.ts
 │   ├── api/              # External API clients
 │   │   └── heyreach.ts
+│   ├── clients/          # AI service clients
+│   │   ├── perplexity.ts          # Perplexity AI client
+│   │   └── perplexity-extractors.ts  # Response parsers
 │   ├── core/             # Core business logic
 │   │   ├── leads/        # Lead management
 │   │   ├── personalization/  # Message generation
 │   │   ├── campaigns/    # Campaign orchestration
 │   │   ├── feedback/     # Learning and optimization
+│   │   ├── decisions/    # Decision transparency
+│   │   ├── approval/     # Human-in-the-loop
+│   │   ├── memory/       # Structured memory
+│   │   ├── suppression/  # Suppression intelligence
+│   │   ├── strategy/     # Campaign strategies
+│   │   ├── learning/     # Closed-loop learning
+│   │   ├── controls/     # Control knobs
+│   │   ├── health/       # Account health prediction
+│   │   ├── research/     # Research caching
+│   │   ├── ux/           # Magical UX
 │   │   └── safety/       # Safety and deliverability
 │   ├── types/            # TypeScript type definitions
 │   ├── utils/            # Utility functions
@@ -357,6 +413,12 @@ linkedin/
 │   ├── leads/
 │   ├── campaigns/
 │   └── feedback/
+├── examples/             # Example scripts
+│   ├── demo-workflow.ts
+│   ├── test-components.ts
+│   ├── working-demo.ts
+│   ├── strategic-features-demo.ts
+│   └── test-research-tool.ts
 ├── logs/                 # Application logs
 ├── .env.example          # Environment variables template
 ├── package.json
