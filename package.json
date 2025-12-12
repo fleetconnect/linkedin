@@ -14,7 +14,8 @@
     "demo": "tsx examples/demo-workflow.ts",
     "demo:simple": "tsx examples/simple-campaign.ts",
     "demo:test": "tsx examples/test-components.ts",
-    "demo:working": "tsx examples/working-demo.ts"
+    "demo:working": "tsx examples/working-demo.ts",
+    "demo:strategic": "tsx examples/strategic-features-demo.ts"
   },
   "keywords": [
     "ai",
