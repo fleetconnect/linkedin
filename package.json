@@ -17,7 +17,8 @@
     "demo:working": "tsx examples/working-demo.ts",
     "demo:strategic": "tsx examples/strategic-features-demo.ts",
     "demo:agency": "tsx examples/agency-flow-demo.ts",
-    "test:research": "tsx examples/test-research-tool.ts"
+    "test:research": "tsx examples/test-research-tool.ts",
+    "check:health": "tsx scripts/check-client-health.ts"
   },
   "keywords": [
     "ai",
