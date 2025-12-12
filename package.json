@@ -16,6 +16,7 @@
     "demo:test": "tsx examples/test-components.ts",
     "demo:working": "tsx examples/working-demo.ts",
     "demo:strategic": "tsx examples/strategic-features-demo.ts",
+    "demo:agency": "tsx examples/agency-flow-demo.ts",
     "test:research": "tsx examples/test-research-tool.ts"
   },
   "keywords": [
