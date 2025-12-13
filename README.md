@@ -1,6 +1,6 @@
 # LinkedIn Lead Management API
 
-A complete LinkedIn lead management service providing data normalization, lead scoring, outreach message generation, and reply classification. This API transforms raw lead information into clean data, qualifies leads based on seniority, generates respectful B2B outreach messages, and classifies reply intent.
+A complete LinkedIn lead management service providing data normalization, lead scoring, outreach message generation, reply classification, and follow-up drafting. This API transforms raw lead information into clean data, qualifies leads based on seniority, generates respectful B2B outreach messages, classifies reply intent, and drafts professional follow-up responses.
 
 ## Features
 
@@ -8,6 +8,7 @@ A complete LinkedIn lead management service providing data normalization, lead s
 - **Lead Scoring**: Conservative scoring approach (better to under-score than over-score)
 - **Message Generation**: Respectful, low-pressure B2B outreach messages
 - **Reply Classification**: Intent detection based on explicit meaning (positive, neutral, objection, negative, out_of_office)
+- **Follow-up Generation**: Safe, professional follow-up responses (positive and neutral intents only)
 - Explicit scoring logic based on seniority and data completeness
 - No data invention (returns empty strings when uncertain)
 - Automatic LinkedIn URL normalization
@@ -17,6 +18,7 @@ A complete LinkedIn lead management service providing data normalization, lead s
 - Channel-aware messaging (email vs LinkedIn)
 - Tone customization (direct vs neutral)
 - Pattern-based intent classification with confidence scoring
+- Calm, human tone for follow-ups with no selling or pressure
 
 ## Installation
 
@@ -630,6 +632,152 @@ Response:
 }
 ```
 
+### POST /draft-followup
+
+Draft safe, professional follow-up responses (only for positive and neutral intents).
+
+#### Input Schema
+
+```json
+{
+  "lead": {
+    "first_name": "string"
+  },
+  "intent": "string",
+  "reply_text": "string"
+}
+```
+
+#### Output Schema
+
+```json
+{
+  "message": {
+    "body": "string"
+  }
+}
+```
+
+#### Examples
+
+**Example 1: Positive Intent - Timing Mention**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/draft-followup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead": {
+      "first_name": "Sarah"
+    },
+    "intent": "positive",
+    "reply_text": "Yes, this sounds interesting. When are you available next week?"
+  }'
+```
+
+Response:
+```json
+{
+  "message": {
+    "body": "Thanks Sarah. I appreciate your interest. I'll send over a few time options that might work. Looking forward to connecting."
+  }
+}
+```
+
+**Example 2: Positive Intent - General**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/draft-followup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead": {
+      "first_name": "John"
+    },
+    "intent": "positive",
+    "reply_text": "Sounds good, I would like to learn more."
+  }'
+```
+
+Response:
+```json
+{
+  "message": {
+    "body": "Thanks John. I'm glad this resonates. I'll follow up with some details that might be helpful. Feel free to reach out if you have any questions in the meantime."
+  }
+}
+```
+
+**Example 3: Neutral Intent - Asking for Info**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/draft-followup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead": {
+      "first_name": "Mike"
+    },
+    "intent": "neutral",
+    "reply_text": "Can you send me more details about this?"
+  }'
+```
+
+Response:
+```json
+{
+  "message": {
+    "body": "Hi Mike, happy to share more context. I'll send over some information that addresses what you mentioned. Let me know if you'd like to discuss further."
+  }
+}
+```
+
+**Example 4: Neutral Intent - No First Name**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/draft-followup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead": {},
+    "intent": "neutral",
+    "reply_text": "Maybe, I need to think about it."
+  }'
+```
+
+Response:
+```json
+{
+  "message": {
+    "body": "Hi, thanks for the response. No pressure at all. I'll share a bit more background in case it's helpful. Feel free to reach out if you'd like to explore this."
+  }
+}
+```
+
+**Example 5: Objection Intent - No Response**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/draft-followup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead": {
+      "first_name": "Bob"
+    },
+    "intent": "objection",
+    "reply_text": "Not the right timing for us."
+  }'
+```
+
+Response:
+```json
+{
+  "message": {
+    "body": ""
+  }
+}
+```
+
 ### GET /health
 
 Health check endpoint.
@@ -793,6 +941,45 @@ The `/classify-reply` endpoint classifies reply intent based on explicit meaning
 - Multiple matching patterns increase confidence
 - Strong signals (e.g., "yes", "not interested") produce higher confidence
 
+## Follow-up Generation Rules
+
+The `/draft-followup` endpoint generates safe, professional follow-up responses with strict safety constraints.
+
+### Safety Constraints
+- **Only respond to positive or neutral intents**: Returns empty string for objection, negative, or out_of_office
+- **Max 60 words**: Concise and respectful
+- **No selling**: No pitches or promotional language
+- **No links**: No URLs or calendar links
+- **No calendar asks**: No direct scheduling requests
+- **Calm and human tone**: Natural, low-pressure communication
+
+### Response Generation
+
+**Positive Intent Follow-ups**
+- Acknowledge their interest with gratitude
+- Detect timing mentions (when, schedule, available, time) → offer to send time options
+- General positive → offer to share helpful details
+- Keep conversation open without pressure
+- Example: "Thanks [Name]. I appreciate your interest. I'll send over a few time options that might work. Looking forward to connecting."
+
+**Neutral Intent Follow-ups**
+- Respond to information requests with offer to provide context
+- General neutral → acknowledge with no pressure, share background
+- Use softer language ("no pressure at all", "in case it's helpful")
+- Leave door open for future engagement
+- Example: "Hi [Name], happy to share more context. I'll send over some information that addresses what you mentioned. Let me know if you'd like to discuss further."
+
+### Name Handling
+- If `first_name` provided: Use personalized greeting ("Thanks [Name]" or "Hi [Name]")
+- If no `first_name`: Use generic greeting ("Thanks for getting back to me" or "Hi")
+
+### Intent-Based Logic
+- **Positive + timing mention**: Acknowledge scheduling interest
+- **Positive + general**: Express appreciation, offer details
+- **Neutral + asking for info**: Offer to share context
+- **Neutral + general**: Low-pressure response with background offer
+- **Objection/Negative/Out of Office**: Return empty string (no response)
+
 ## Project Structure
 
 ```
@@ -805,7 +992,8 @@ linkedin/
 │   │   ├── leadService.js           # Normalization logic
 │   │   ├── scoringService.js        # Lead scoring logic
 │   │   ├── messageService.js        # Message generation logic
-│   │   └── classificationService.js # Reply classification logic
+│   │   ├── classificationService.js # Reply classification logic
+│   │   └── followupService.js       # Follow-up generation logic
 │   └── middleware/
 │       └── validation.js            # Request validation
 ├── package.json
@@ -846,7 +1034,12 @@ curl -X POST http://localhost:3000/generate-message \
 # Test reply classification
 curl -X POST http://localhost:3000/classify-reply \
   -H "Content-Type: application/json" \
-  -d '{"reply_text":"Yes, this sounds interesting! When are you available for a call?"}'
+  -d '{"reply_text":"Yes, this sounds interesting. When are you available for a call?"}'
+
+# Test follow-up generation
+curl -X POST http://localhost:3000/draft-followup \
+  -H "Content-Type: application/json" \
+  -d '{"lead":{"first_name":"Jane"},"intent":"positive","reply_text":"Sounds good, I would like to learn more."}'
 
 # Test health check
 curl http://localhost:3000/health

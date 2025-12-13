@@ -7,7 +7,8 @@ import { normalizeLead } from '../services/leadService.js';
 import { scoreLead } from '../services/scoringService.js';
 import { generateMessage } from '../services/messageService.js';
 import { classifyReply } from '../services/classificationService.js';
-import { validateRawLead, validateLead, validateMessageInput, validateReplyText } from '../middleware/validation.js';
+import { draftFollowup } from '../services/followupService.js';
+import { validateRawLead, validateLead, validateMessageInput, validateReplyText, validateFollowupInput } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -91,6 +92,27 @@ router.post('/classify-reply', validateReplyText, (req, res) => {
     console.error('Error classifying reply:', error);
     res.status(500).json({
       error: 'Internal server error during reply classification'
+    });
+  }
+});
+
+/**
+ * POST /draft-followup
+ * Draft a professional follow-up response
+ */
+router.post('/draft-followup', validateFollowupInput, (req, res) => {
+  try {
+    const { lead, intent, reply_text } = req.body;
+
+    // Draft the follow-up
+    const result = draftFollowup(lead, intent, reply_text);
+
+    // Return JSON response
+    res.json(result);
+  } catch (error) {
+    console.error('Error drafting follow-up:', error);
+    res.status(500).json({
+      error: 'Internal server error during follow-up generation'
     });
   }
 });

@@ -172,3 +172,56 @@ export function validateReplyText(req, res, next) {
   // Continue to the next middleware
   next();
 }
+
+/**
+ * Validate the input for the /draft-followup endpoint
+ */
+export function validateFollowupInput(req, res, next) {
+  const { lead, intent, reply_text } = req.body;
+
+  // Check if lead exists
+  if (!lead) {
+    return res.status(400).json({
+      error: 'Missing required field: lead'
+    });
+  }
+
+  // Check if lead is an object
+  if (typeof lead !== 'object' || Array.isArray(lead)) {
+    return res.status(400).json({
+      error: 'lead must be an object'
+    });
+  }
+
+  // Check if intent exists
+  if (!intent) {
+    return res.status(400).json({
+      error: 'Missing required field: intent'
+    });
+  }
+
+  // Check if intent is a string
+  if (typeof intent !== 'string') {
+    return res.status(400).json({
+      error: 'intent must be a string'
+    });
+  }
+
+  // Validate intent value
+  const validIntents = ['positive', 'neutral', 'objection', 'negative', 'out_of_office'];
+  if (!validIntents.includes(intent.toLowerCase())) {
+    return res.status(400).json({
+      error: 'intent must be one of: positive, neutral, objection, negative, out_of_office'
+    });
+  }
+
+  // reply_text is optional, but if provided, must be a string
+  if (reply_text !== undefined && reply_text !== null && typeof reply_text !== 'string') {
+    return res.status(400).json({
+      error: 'reply_text must be a string'
+    });
+  }
+
+  // Continue to the next middleware
+  next();
+}

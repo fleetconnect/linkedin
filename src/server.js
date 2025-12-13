@@ -45,6 +45,7 @@ app.listen(PORT, () => {
   console.log(`  POST /score-lead - Score and qualify lead`);
   console.log(`  POST /generate-message - Generate outreach message`);
   console.log(`  POST /classify-reply - Classify reply intent`);
+  console.log(`  POST /draft-followup - Draft follow-up response`);
   console.log(`  GET  /health - Health check`);
 });
 
