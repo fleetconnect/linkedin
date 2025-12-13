@@ -44,6 +44,7 @@ app.listen(PORT, () => {
   console.log(`  POST /normalize-lead - Normalize lead data`);
   console.log(`  POST /score-lead - Score and qualify lead`);
   console.log(`  POST /generate-message - Generate outreach message`);
+  console.log(`  POST /classify-reply - Classify reply intent`);
   console.log(`  GET  /health - Health check`);
 });
 

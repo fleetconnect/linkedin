@@ -6,7 +6,8 @@ import express from 'express';
 import { normalizeLead } from '../services/leadService.js';
 import { scoreLead } from '../services/scoringService.js';
 import { generateMessage } from '../services/messageService.js';
-import { validateRawLead, validateLead, validateMessageInput } from '../middleware/validation.js';
+import { classifyReply } from '../services/classificationService.js';
+import { validateRawLead, validateLead, validateMessageInput, validateReplyText } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -69,6 +70,27 @@ router.post('/generate-message', validateMessageInput, (req, res) => {
     console.error('Error generating message:', error);
     res.status(500).json({
       error: 'Internal server error during message generation'
+    });
+  }
+});
+
+/**
+ * POST /classify-reply
+ * Classify the intent of a reply message
+ */
+router.post('/classify-reply', validateReplyText, (req, res) => {
+  try {
+    const { reply_text } = req.body;
+
+    // Classify the reply
+    const result = classifyReply(reply_text);
+
+    // Return JSON response
+    res.json(result);
+  } catch (error) {
+    console.error('Error classifying reply:', error);
+    res.status(500).json({
+      error: 'Internal server error during reply classification'
     });
   }
 });

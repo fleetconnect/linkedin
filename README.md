@@ -1,12 +1,13 @@
 # LinkedIn Lead Management API
 
-A complete LinkedIn lead management service providing data normalization, lead scoring, and outreach message generation. This API transforms raw lead information into clean data, qualifies leads based on seniority, and generates respectful B2B outreach messages.
+A complete LinkedIn lead management service providing data normalization, lead scoring, outreach message generation, and reply classification. This API transforms raw lead information into clean data, qualifies leads based on seniority, generates respectful B2B outreach messages, and classifies reply intent.
 
 ## Features
 
 - **Lead Normalization**: Deterministic normalization (same input always produces same output)
 - **Lead Scoring**: Conservative scoring approach (better to under-score than over-score)
 - **Message Generation**: Respectful, low-pressure B2B outreach messages
+- **Reply Classification**: Intent detection based on explicit meaning (positive, neutral, objection, negative, out_of_office)
 - Explicit scoring logic based on seniority and data completeness
 - No data invention (returns empty strings when uncertain)
 - Automatic LinkedIn URL normalization
@@ -15,6 +16,7 @@ A complete LinkedIn lead management service providing data normalization, lead s
 - Lead qualification with score, tier, and reason
 - Channel-aware messaging (email vs LinkedIn)
 - Tone customization (direct vs neutral)
+- Pattern-based intent classification with confidence scoring
 
 ## Installation
 
@@ -510,6 +512,124 @@ Response:
 }
 ```
 
+### POST /classify-reply
+
+Classify the intent of a reply message based on explicit meaning.
+
+#### Input Schema
+
+```json
+{
+  "reply_text": "string"
+}
+```
+
+#### Output Schema
+
+```json
+{
+  "intent": "positive | neutral | objection | negative | out_of_office",
+  "confidence": 0.0
+}
+```
+
+#### Examples
+
+**Example 1: Positive Intent**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/classify-reply \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reply_text": "Yes, this sounds interesting! When are you available for a call?"
+  }'
+```
+
+Response:
+```json
+{
+  "intent": "positive",
+  "confidence": 0.8
+}
+```
+
+**Example 2: Objection Intent**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/classify-reply \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reply_text": "Thanks for reaching out, but we already have a solution in place."
+  }'
+```
+
+Response:
+```json
+{
+  "intent": "objection",
+  "confidence": 0.68
+}
+```
+
+**Example 3: Negative Intent**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/classify-reply \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reply_text": "Not interested. Please do not contact me again."
+  }'
+```
+
+Response:
+```json
+{
+  "intent": "negative",
+  "confidence": 0.9
+}
+```
+
+**Example 4: Out of Office**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/classify-reply \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reply_text": "Thank you for your email. I am currently out of office and will respond when I return."
+  }'
+```
+
+Response:
+```json
+{
+  "intent": "out_of_office",
+  "confidence": 0.95
+}
+```
+
+**Example 5: Neutral Intent**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/classify-reply \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reply_text": "Can you send me more information about this?"
+  }'
+```
+
+Response:
+```json
+{
+  "intent": "neutral",
+  "confidence": 0.58
+}
+```
+
 ### GET /health
 
 Health check endpoint.
@@ -632,20 +752,62 @@ The `/generate-message` endpoint generates respectful, low-pressure B2B outreach
 3. Brief value statement (tone-dependent)
 4. Soft closing question (tier-dependent)
 
+## Reply Classification Rules
+
+The `/classify-reply` endpoint classifies reply intent based on explicit meaning, not optimism. It uses pattern matching to detect intent signals and calculates confidence scores.
+
+### Intent Categories
+
+**Positive**
+- Signals: "yes", "sure", "sounds good", "interested", "let's talk", "when", "available", "happy to", "would love to"
+- Confidence: Higher confidence for explicit agreement signals
+
+**Neutral**
+- Signals: "maybe", "not sure", "tell me more", "what", "how", "can you explain", "need more information"
+- Confidence: Moderate confidence for information-seeking patterns
+
+**Objection**
+- Signals: "already have", "timing isn't right", "not a priority", "not now", "but", "however", "maybe later", "in the future"
+- Confidence: Moderate to high based on strength of objection signals
+
+**Negative**
+- Signals: "no", "not interested", "don't contact", "stop", "remove me", "unsubscribe", "never"
+- Confidence: High confidence for explicit rejection
+
+**Out of Office**
+- Signals: "out of office", "automatic reply", "currently unavailable", "away from office", "on vacation", "limited access"
+- Confidence: Very high (0.95) for clear auto-reply patterns
+
+### Classification Logic
+
+1. **Priority Check**: Out of office is checked first (highest priority)
+2. **Pattern Matching**: Multiple patterns are evaluated for each intent
+3. **Scoring**: Patterns contribute to intent scores (strong patterns = higher scores)
+4. **Confidence Calculation**: Based on number and strength of matching patterns
+5. **Intent Selection**: Highest scoring intent is returned
+6. **Default Behavior**: If no patterns match, returns "neutral" with low confidence (0.3)
+
+### Confidence Scoring
+- Confidence ranges from 0.0 to 1.0
+- Based on explicit meaning, not optimistic interpretation
+- Multiple matching patterns increase confidence
+- Strong signals (e.g., "yes", "not interested") produce higher confidence
+
 ## Project Structure
 
 ```
 linkedin/
 ├── src/
-│   ├── server.js              # Express server
+│   ├── server.js                    # Express server
 │   ├── routes/
-│   │   └── leads.js           # Route handlers
+│   │   └── leads.js                 # Route handlers
 │   ├── services/
-│   │   ├── leadService.js     # Normalization logic
-│   │   ├── scoringService.js  # Lead scoring logic
-│   │   └── messageService.js  # Message generation logic
+│   │   ├── leadService.js           # Normalization logic
+│   │   ├── scoringService.js        # Lead scoring logic
+│   │   ├── messageService.js        # Message generation logic
+│   │   └── classificationService.js # Reply classification logic
 │   └── middleware/
-│       └── validation.js      # Request validation
+│       └── validation.js            # Request validation
 ├── package.json
 ├── .env.example
 ├── .gitignore
@@ -657,7 +819,7 @@ linkedin/
 The API returns appropriate HTTP status codes:
 
 - `200 OK` - Successful operation
-- `400 Bad Request` - Invalid input (missing or malformed `raw_lead` or `lead`)
+- `400 Bad Request` - Invalid input (missing or malformed data)
 - `404 Not Found` - Endpoint not found
 - `500 Internal Server Error` - Server error
 
@@ -680,6 +842,11 @@ curl -X POST http://localhost:3000/score-lead \
 curl -X POST http://localhost:3000/generate-message \
   -H "Content-Type: application/json" \
   -d '{"lead":{"first_name":"Jane","company":"Acme Corp","role":"VP of Sales"},"score":{"tier":"high"},"context":{"channel":"email","tone":"direct","goal":"start conversation"}}'
+
+# Test reply classification
+curl -X POST http://localhost:3000/classify-reply \
+  -H "Content-Type: application/json" \
+  -d '{"reply_text":"Yes, this sounds interesting! When are you available for a call?"}'
 
 # Test health check
 curl http://localhost:3000/health

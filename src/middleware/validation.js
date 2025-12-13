@@ -148,3 +148,27 @@ export function validateMessageInput(req, res, next) {
   // Continue to the next middleware
   next();
 }
+
+/**
+ * Validate the input for the /classify-reply endpoint
+ */
+export function validateReplyText(req, res, next) {
+  const { reply_text } = req.body;
+
+  // Check if reply_text exists
+  if (reply_text === undefined || reply_text === null) {
+    return res.status(400).json({
+      error: 'Missing required field: reply_text'
+    });
+  }
+
+  // Check if reply_text is a string
+  if (typeof reply_text !== 'string') {
+    return res.status(400).json({
+      error: 'reply_text must be a string'
+    });
+  }
+
+  // Continue to the next middleware
+  next();
+}
