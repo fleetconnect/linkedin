@@ -4,7 +4,8 @@
 
 import express from 'express';
 import { normalizeLead } from '../services/leadService.js';
-import { validateRawLead } from '../middleware/validation.js';
+import { scoreLead } from '../services/scoringService.js';
+import { validateRawLead, validateLead } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -25,6 +26,27 @@ router.post('/normalize-lead', validateRawLead, (req, res) => {
     console.error('Error normalizing lead:', error);
     res.status(500).json({
       error: 'Internal server error during lead normalization'
+    });
+  }
+});
+
+/**
+ * POST /score-lead
+ * Score and qualify a normalized lead
+ */
+router.post('/score-lead', validateLead, (req, res) => {
+  try {
+    const { lead } = req.body;
+
+    // Score the lead
+    const result = scoreLead(lead);
+
+    // Return JSON response
+    res.json(result);
+  } catch (error) {
+    console.error('Error scoring lead:', error);
+    res.status(500).json({
+      error: 'Internal server error during lead scoring'
     });
   }
 });

@@ -42,6 +42,7 @@ app.listen(PORT, () => {
   console.log(`LinkedIn Lead Normalization API running on port ${PORT}`);
   console.log(`Available endpoints:`);
   console.log(`  POST /normalize-lead - Normalize lead data`);
+  console.log(`  POST /score-lead - Score and qualify lead`);
   console.log(`  GET  /health - Health check`);
 });
 
