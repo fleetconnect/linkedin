@@ -5,7 +5,8 @@
 import express from 'express';
 import { normalizeLead } from '../services/leadService.js';
 import { scoreLead } from '../services/scoringService.js';
-import { validateRawLead, validateLead } from '../middleware/validation.js';
+import { generateMessage } from '../services/messageService.js';
+import { validateRawLead, validateLead, validateMessageInput } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -47,6 +48,27 @@ router.post('/score-lead', validateLead, (req, res) => {
     console.error('Error scoring lead:', error);
     res.status(500).json({
       error: 'Internal server error during lead scoring'
+    });
+  }
+});
+
+/**
+ * POST /generate-message
+ * Generate B2B outreach message for a lead
+ */
+router.post('/generate-message', validateMessageInput, (req, res) => {
+  try {
+    const { lead, score, context } = req.body;
+
+    // Generate the message
+    const result = generateMessage(lead, score, context);
+
+    // Return JSON response
+    res.json(result);
+  } catch (error) {
+    console.error('Error generating message:', error);
+    res.status(500).json({
+      error: 'Internal server error during message generation'
     });
   }
 });

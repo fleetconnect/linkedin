@@ -71,3 +71,80 @@ export function validateLead(req, res, next) {
   // Continue to the next middleware
   next();
 }
+
+/**
+ * Validate the input for the /generate-message endpoint
+ */
+export function validateMessageInput(req, res, next) {
+  const { lead, score, context } = req.body;
+
+  // Check if lead exists
+  if (!lead) {
+    return res.status(400).json({
+      error: 'Missing required field: lead'
+    });
+  }
+
+  // Check if lead is an object
+  if (typeof lead !== 'object' || Array.isArray(lead)) {
+    return res.status(400).json({
+      error: 'lead must be an object'
+    });
+  }
+
+  // Check if context exists
+  if (!context) {
+    return res.status(400).json({
+      error: 'Missing required field: context'
+    });
+  }
+
+  // Check if context is an object
+  if (typeof context !== 'object' || Array.isArray(context)) {
+    return res.status(400).json({
+      error: 'context must be an object'
+    });
+  }
+
+  // Validate context.channel if provided
+  if (context.channel) {
+    const validChannels = ['linkedin', 'email'];
+    if (!validChannels.includes(context.channel.toLowerCase())) {
+      return res.status(400).json({
+        error: 'context.channel must be either "linkedin" or "email"'
+      });
+    }
+  }
+
+  // Validate context.tone if provided
+  if (context.tone) {
+    const validTones = ['direct', 'neutral'];
+    if (!validTones.includes(context.tone.toLowerCase())) {
+      return res.status(400).json({
+        error: 'context.tone must be either "direct" or "neutral"'
+      });
+    }
+  }
+
+  // Score is optional, but if provided, validate it
+  if (score) {
+    if (typeof score !== 'object' || Array.isArray(score)) {
+      return res.status(400).json({
+        error: 'score must be an object'
+      });
+    }
+
+    // Validate tier if provided
+    if (score.tier) {
+      const validTiers = ['low', 'medium', 'high'];
+      if (!validTiers.includes(score.tier.toLowerCase())) {
+        return res.status(400).json({
+          error: 'score.tier must be "low", "medium", or "high"'
+        });
+      }
+    }
+  }
+
+  // Continue to the next middleware
+  next();
+}

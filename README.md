@@ -1,17 +1,20 @@
-# LinkedIn Lead Normalization & Scoring API
+# LinkedIn Lead Management API
 
-A deterministic data normalization and lead scoring service for LinkedIn lead data. This API provides endpoints to transform raw lead information into clean, structured format and qualify leads based on seniority and completeness.
+A complete LinkedIn lead management service providing data normalization, lead scoring, and outreach message generation. This API transforms raw lead information into clean data, qualifies leads based on seniority, and generates respectful B2B outreach messages.
 
 ## Features
 
-- Deterministic normalization (same input always produces same output)
-- Conservative lead scoring (better to under-score than over-score)
+- **Lead Normalization**: Deterministic normalization (same input always produces same output)
+- **Lead Scoring**: Conservative scoring approach (better to under-score than over-score)
+- **Message Generation**: Respectful, low-pressure B2B outreach messages
 - Explicit scoring logic based on seniority and data completeness
 - No data invention (returns empty strings when uncertain)
 - Automatic LinkedIn URL normalization
 - Intelligent seniority and industry detection
 - Name parsing (full name → first name)
 - Lead qualification with score, tier, and reason
+- Channel-aware messaging (email vs LinkedIn)
+- Tone customization (direct vs neutral)
 
 ## Installation
 
@@ -338,6 +341,175 @@ Response:
 }
 ```
 
+### POST /generate-message
+
+Generate respectful, low-pressure B2B outreach messages for leads.
+
+#### Input Schema
+
+```json
+{
+  "lead": {
+    "first_name": "string",
+    "company": "string",
+    "role": "string"
+  },
+  "score": {
+    "tier": "low | medium | high"
+  },
+  "context": {
+    "channel": "linkedin | email",
+    "tone": "direct | neutral",
+    "goal": "start conversation"
+  }
+}
+```
+
+#### Output Schema
+
+```json
+{
+  "message": {
+    "subject": "string",
+    "body": "string"
+  }
+}
+```
+
+#### Examples
+
+**Example 1: Email - Direct Tone - High Tier Lead**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/generate-message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead": {
+      "first_name": "Sarah",
+      "company": "Global Finance Corp",
+      "role": "Chief Technology Officer"
+    },
+    "score": {
+      "tier": "high"
+    },
+    "context": {
+      "channel": "email",
+      "tone": "direct",
+      "goal": "start conversation"
+    }
+  }'
+```
+
+Response:
+```json
+{
+  "message": {
+    "subject": "Quick question about Global Finance Corp",
+    "body": "Hi Sarah,\n\nI noticed your work as Chief Technology Officer at Global Finance Corp. We're working on solutions that might align with your priorities.\n\nWould you be open to a brief conversation to explore if there's potential alignment?"
+  }
+}
+```
+
+**Example 2: LinkedIn - Neutral Tone - Medium Tier Lead**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/generate-message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead": {
+      "first_name": "Bob",
+      "company": "TechStart Inc",
+      "role": "Director of Engineering"
+    },
+    "score": {
+      "tier": "medium"
+    },
+    "context": {
+      "channel": "linkedin",
+      "tone": "neutral",
+      "goal": "start conversation"
+    }
+  }'
+```
+
+Response:
+```json
+{
+  "message": {
+    "subject": "",
+    "body": "Hi Bob,\n\nI noticed your work as Director of Engineering at TechStart Inc. We're working on something that could be relevant to your team.\n\nWould it make sense to connect briefly to see if there's a fit?"
+  }
+}
+```
+
+**Example 3: Email - Direct Tone - Low Tier Lead**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/generate-message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead": {
+      "first_name": "John",
+      "company": "TechCorp",
+      "role": "Senior Software Engineer"
+    },
+    "score": {
+      "tier": "low"
+    },
+    "context": {
+      "channel": "email",
+      "tone": "direct",
+      "goal": "start conversation"
+    }
+  }'
+```
+
+Response:
+```json
+{
+  "message": {
+    "subject": "Quick question about TechCorp",
+    "body": "Hi John,\n\nI noticed your work as Senior Software Engineer at TechCorp. We're working on solutions that might align with your priorities.\n\nWould you be interested in learning more?"
+  }
+}
+```
+
+**Example 4: Partial Data - Neutral Tone**
+
+Request:
+```bash
+curl -X POST http://localhost:3000/generate-message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead": {
+      "first_name": "Mike",
+      "company": "",
+      "role": "Consultant"
+    },
+    "score": {
+      "tier": "low"
+    },
+    "context": {
+      "channel": "email",
+      "tone": "neutral",
+      "goal": "start conversation"
+    }
+  }'
+```
+
+Response:
+```json
+{
+  "message": {
+    "subject": "Following up",
+    "body": "Hi Mike,\n\nI noticed your work as Consultant. We're working on something that could be relevant to your team.\n\nWould you be interested in learning more?"
+  }
+}
+```
+
 ### GET /health
 
 Health check endpoint.
@@ -430,6 +602,36 @@ Examples:
 - "Director with sufficient profile data shows moderate potential."
 - "Unknown seniority level indicates uncertain decision-making authority."
 
+## Message Generation Rules
+
+The `/generate-message` endpoint generates respectful, low-pressure B2B outreach messages following these principles:
+
+### Message Constraints
+- **No emojis**: Professional text only
+- **No hype language**: Avoid superlatives and marketing speak
+- **Body max 75 words**: Concise and respectful of recipient's time
+- **Soft question ending**: Invite conversation without pressure
+- **Limited personalization**: Only use provided fields (first_name, company, role)
+
+### Channel-Specific Behavior
+- **Email**: Generates subject line + body
+- **LinkedIn**: Subject is empty string (not used), body only
+
+### Tone Variations
+- **Direct**: "Quick question about {company}" / "We're working on solutions that might align with your priorities"
+- **Neutral**: "Exploring potential at {company}" / "We're working on something that could be relevant to your team"
+
+### Tier-Based Closing Questions
+- **High tier**: "Would you be open to a brief conversation to explore if there's potential alignment?"
+- **Medium tier**: "Would it make sense to connect briefly to see if there's a fit?"
+- **Low tier**: "Would you be interested in learning more?"
+
+### Message Structure
+1. Greeting with first name (if available)
+2. Context about their role/company (based on available data)
+3. Brief value statement (tone-dependent)
+4. Soft closing question (tier-dependent)
+
 ## Project Structure
 
 ```
@@ -440,7 +642,8 @@ linkedin/
 │   │   └── leads.js           # Route handlers
 │   ├── services/
 │   │   ├── leadService.js     # Normalization logic
-│   │   └── scoringService.js  # Lead scoring logic
+│   │   ├── scoringService.js  # Lead scoring logic
+│   │   └── messageService.js  # Message generation logic
 │   └── middleware/
 │       └── validation.js      # Request validation
 ├── package.json
@@ -472,6 +675,11 @@ curl -X POST http://localhost:3000/normalize-lead \
 curl -X POST http://localhost:3000/score-lead \
   -H "Content-Type: application/json" \
   -d '{"lead":{"full_name":"Jane Doe","company":"Acme Corp","role":"VP of Sales","industry":"Sales","seniority":"VP"}}'
+
+# Test message generation
+curl -X POST http://localhost:3000/generate-message \
+  -H "Content-Type: application/json" \
+  -d '{"lead":{"first_name":"Jane","company":"Acme Corp","role":"VP of Sales"},"score":{"tier":"high"},"context":{"channel":"email","tone":"direct","goal":"start conversation"}}'
 
 # Test health check
 curl http://localhost:3000/health
