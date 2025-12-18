@@ -10,6 +10,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum LeadState {
+  NEW
+  NORMALIZED
+  DISQUALIFIED
+  QUALIFIED
+  CONTACTED
+  REPLIED
+  BOOKED
+  CLOSED
+}
+
 model Campaign {
   campaign_id String @id @default(uuid())
   client_id   String
@@ -27,5 +38,31 @@ model Campaign {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
+  // Relationships
+  leads Lead[]
+
   @@map("campaigns")
+}
+
+model Lead {
+  lead_id     String    @id @default(uuid())
+  campaign_id String
+  state       LeadState @default(NEW)
+
+  // Data fields - every tool mutation updates this object
+  raw_input   Json? // Original raw input data
+  normalized  Json? // Normalized/processed data
+  score       Json? // Scoring information
+  messages    Json? // Array of message objects
+  last_intent String? // Last detected intent
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationships
+  campaign Campaign @relation(fields: [campaign_id], references: [campaign_id], onDelete: Cascade)
+
+  @@index([campaign_id])
+  @@index([state])
+  @@map("leads")
 }

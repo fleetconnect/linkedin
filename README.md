@@ -40,7 +40,9 @@ A Node.js/TypeScript application for managing LinkedIn campaigns with PostgreSQL
    npm run prisma:migrate
    ```
 
-## Campaign Schema
+## Database Schema
+
+### Campaign Model
 
 The Campaign model includes the following fields:
 
@@ -56,6 +58,33 @@ The Campaign model includes the following fields:
 | `license_tier` | String (optional) | License tier: operator, partner, or enterprise |
 | `created_at` | DateTime | Auto-generated creation timestamp |
 | `updated_at` | DateTime | Auto-updated timestamp |
+
+### Lead Model
+
+**The Brain Stem of the OS** - Every tool mutation must update this object.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `lead_id` | String (UUID) | Primary key, auto-generated |
+| `campaign_id` | String (UUID) | Foreign key to Campaign |
+| `state` | LeadState enum | Current state in the lead lifecycle |
+| `raw_input` | JSON (optional) | Original raw input data |
+| `normalized` | JSON (optional) | Normalized/processed data |
+| `score` | JSON (optional) | Scoring information |
+| `messages` | JSON (optional) | Array of message objects |
+| `last_intent` | String (optional) | Last detected intent |
+| `created_at` | DateTime | Auto-generated creation timestamp |
+| `updated_at` | DateTime | Auto-updated timestamp |
+
+**LeadState Enum Values:**
+- `NEW` - Initial state
+- `NORMALIZED` - Data has been normalized
+- `DISQUALIFIED` - Lead does not meet criteria
+- `QUALIFIED` - Lead meets criteria
+- `CONTACTED` - Outreach has been made
+- `REPLIED` - Lead has responded
+- `BOOKED` - Meeting/call scheduled
+- `CLOSED` - Deal closed
 
 ## Usage
 
@@ -78,6 +107,8 @@ npm run prisma:studio
 ```
 
 ## Example Usage
+
+### Working with Campaigns
 
 ```typescript
 import { PrismaClient } from '@prisma/client';
@@ -106,10 +137,75 @@ const campaign = await prisma.campaign.create({
     license_tier: 'partner'
   }
 });
+```
 
-// Query campaigns
-const activeCampaigns = await prisma.campaign.findMany({
-  where: { status: 'active' }
+### Working with Leads
+
+```typescript
+// Create a new lead
+const lead = await prisma.lead.create({
+  data: {
+    campaign_id: campaign.campaign_id,
+    state: 'NEW',
+    raw_input: {
+      name: 'John Doe',
+      title: 'CTO',
+      company: 'Tech Corp',
+      linkedin_url: 'https://linkedin.com/in/johndoe'
+    }
+  }
+});
+
+// Update lead state and data (every tool mutation updates this object)
+const updatedLead = await prisma.lead.update({
+  where: { lead_id: lead.lead_id },
+  data: {
+    state: 'NORMALIZED',
+    normalized: {
+      full_name: 'John Doe',
+      title: 'Chief Technology Officer',
+      company: 'Tech Corp',
+      industry: 'Technology'
+    },
+    score: {
+      total: 85,
+      factors: {
+        title_match: 30,
+        industry_match: 25,
+        company_size: 30
+      }
+    }
+  }
+});
+
+// Query leads by state
+const qualifiedLeads = await prisma.lead.findMany({
+  where: {
+    campaign_id: campaign.campaign_id,
+    state: 'QUALIFIED'
+  },
+  include: {
+    campaign: true
+  }
+});
+
+// Track lead progression through states
+await prisma.lead.update({
+  where: { lead_id: lead.lead_id },
+  data: {
+    state: 'CONTACTED',
+    messages: {
+      sent: [
+        {
+          timestamp: new Date().toISOString(),
+          channel: 'linkedin',
+          content: 'Hi John, I noticed...',
+          status: 'sent'
+        }
+      ]
+    },
+    last_intent: 'initial_outreach'
+  }
 });
 ```
 
