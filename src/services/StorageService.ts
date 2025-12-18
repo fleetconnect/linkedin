@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { Lead, Message, IntentClassification, LeadState } from '../types';
+import { Lead, Message, IntentClassification, LeadState, Campaign, ResearchSnapshot } from '../types';
 
 /**
  * Simple file-based storage service for leads and classifications
@@ -10,11 +10,13 @@ export class StorageService {
   private dataDir: string;
   private leadsFile: string;
   private classificationsFile: string;
+  private campaignsFile: string;
 
   constructor(dataDir: string = './data') {
     this.dataDir = dataDir;
     this.leadsFile = path.join(dataDir, 'leads.json');
     this.classificationsFile = path.join(dataDir, 'classifications.json');
+    this.campaignsFile = path.join(dataDir, 'campaigns.json');
   }
 
   /**
@@ -36,6 +38,13 @@ export class StorageService {
         await fs.access(this.classificationsFile);
       } catch {
         await fs.writeFile(this.classificationsFile, JSON.stringify([], null, 2));
+      }
+
+      // Create campaigns file if it doesn't exist
+      try {
+        await fs.access(this.campaignsFile);
+      } catch {
+        await fs.writeFile(this.campaignsFile, JSON.stringify([], null, 2));
       }
     } catch (error) {
       throw new Error(`Failed to initialize storage: ${error}`);
@@ -164,8 +173,10 @@ export class StorageService {
   async createLead(data: {
     id: string;
     name: string;
+    company?: string;
     linkedinUrl?: string;
     email?: string;
+    campaignId?: string;
   }): Promise<Lead> {
     const lead: Lead = {
       ...data,
@@ -176,6 +187,102 @@ export class StorageService {
     };
 
     return await this.saveLead(lead);
+  }
+
+  /**
+   * Save research snapshot to lead
+   */
+  async saveResearchSnapshot(leadId: string, snapshot: ResearchSnapshot): Promise<Lead | null> {
+    const lead = await this.getLead(leadId);
+    if (!lead) {
+      return null;
+    }
+
+    lead.research_snapshot = snapshot;
+    lead.updatedAt = new Date();
+
+    return await this.saveLead(lead);
+  }
+
+  /**
+   * Get research snapshot for a lead
+   */
+  async getResearchSnapshot(leadId: string): Promise<ResearchSnapshot | null> {
+    const lead = await this.getLead(leadId);
+    return lead?.research_snapshot || null;
+  }
+
+  // ==================== Campaign Methods ====================
+
+  /**
+   * Get all campaigns
+   */
+  async getCampaigns(): Promise<Campaign[]> {
+    try {
+      const data = await fs.readFile(this.campaignsFile, 'utf-8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('Error reading campaigns:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get a single campaign by ID
+   */
+  async getCampaign(campaignId: string): Promise<Campaign | null> {
+    const campaigns = await this.getCampaigns();
+    return campaigns.find(c => c.id === campaignId) || null;
+  }
+
+  /**
+   * Save or update a campaign
+   */
+  async saveCampaign(campaign: Campaign): Promise<Campaign> {
+    const campaigns = await this.getCampaigns();
+    const existingIndex = campaigns.findIndex(c => c.id === campaign.id);
+
+    campaign.updatedAt = new Date();
+
+    if (existingIndex >= 0) {
+      campaigns[existingIndex] = campaign;
+    } else {
+      campaigns.push(campaign);
+    }
+
+    await fs.writeFile(this.campaignsFile, JSON.stringify(campaigns, null, 2));
+    return campaign;
+  }
+
+  /**
+   * Create a new campaign
+   */
+  async createCampaign(data: {
+    id: string;
+    name: string;
+    messaging_rules: {
+      personalization: boolean;
+      maxMessagesPerDay?: number;
+      researchRequired?: boolean;
+      toneOfVoice?: 'professional' | 'casual' | 'friendly';
+    };
+  }): Promise<Campaign> {
+    const campaign: Campaign = {
+      ...data,
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    return await this.saveCampaign(campaign);
+  }
+
+  /**
+   * Get all leads for a campaign
+   */
+  async getLeadsByCampaign(campaignId: string): Promise<Lead[]> {
+    const allLeads = await this.getLeads();
+    return allLeads.filter(lead => lead.campaignId === campaignId);
   }
 }
 

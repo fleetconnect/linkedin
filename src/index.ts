@@ -59,4 +59,26 @@ startServer().catch(error => {
   process.exit(1);
 });
 
-export { LLMService, StorageService, ClassificationController };
+export {
+  LLMService,
+  StorageService,
+  ClassificationController,
+  PerplexityService,
+  ResearchCompanyTool,
+  PreMessageHook,
+  MessageGenerationService,
+  MessagingController
+};
+
+// Re-export from services
+export { PerplexityService } from './services/PerplexityService';
+export { MessageGenerationService } from './services/MessageGenerationService';
+
+// Re-export from tools
+export { ResearchCompanyTool } from './tools/researchCompany';
+
+// Re-export from hooks
+export { PreMessageHook } from './hooks/PreMessageHook';
+
+// Re-export from controllers
+export { MessagingController } from './controllers/MessagingController';

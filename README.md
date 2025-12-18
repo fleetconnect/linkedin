@@ -1,16 +1,27 @@
-# LinkedIn Intent Classifier
+# LinkedIn Intent Classifier & Research Automation
 
-LLM-based intent classification system for LinkedIn message replies. Automatically classifies reply intent, sentiment, and advances lead states based on conversation context.
+LLM-based intent classification system for LinkedIn message replies with automated company research. Automatically classifies reply intent, sentiment, advances lead states, and researches companies for personalized outreach.
 
 ## Features
 
+### Intent Classification
 - 🤖 **LLM-Powered Classification**: Uses OpenAI GPT-4 for accurate intent detection
 - 📊 **Structured Output**: Returns intent, sentiment, confidence, and next state
 - 🎯 **Confidence Validation**: Configurable threshold for classification reliability
 - 🔄 **State Management**: Automatic lead state advancement based on intent
 - 💾 **Persistent Storage**: Saves all classifications and conversation history
+
+### Company Research (NEW)
+- 🔍 **Automated Research**: Uses Perplexity AI for up-to-date company information
+- 🎣 **Pre-Message Hook**: Automatically runs before sending messages
+- ⚙️ **Conditional Execution**: Only runs when `lead.state === QUALIFIED` and `personalization === true`
+- 📝 **Research Persistence**: Saves research to `lead.research_snapshot`
+- ✉️ **Personalized Messages**: Integrates research into message generation
+
+### General
 - 🚀 **REST API**: Easy integration with Express.js endpoints
 - ✅ **Type-Safe**: Built with TypeScript and Zod validation
+- 🏗️ **Modular Architecture**: Clean separation of concerns
 
 ## Intent Classification Schema
 
@@ -33,10 +44,12 @@ LLM-based intent classification system for LinkedIn message replies. Automatical
 ### Lead States
 
 ```
-NEW → CONTACTED → REPLIED → INTERESTED → BOOKED → CLOSED
-                         ↓
-                       LOST
+NEW → QUALIFIED → CONTACTED → REPLIED → INTERESTED → BOOKED → CLOSED
+                                     ↓
+                                   LOST
 ```
+
+**Note**: Research hook runs when lead reaches `QUALIFIED` state.
 
 ## Installation
 
@@ -59,10 +72,17 @@ Edit `.env` file:
 # OpenAI API Configuration
 OPENAI_API_KEY=your_openai_api_key_here
 
+# Perplexity API Configuration (for company research)
+PERPLEXITY_API_KEY=your_perplexity_api_key_here
+
 # Classification Configuration
 CONFIDENCE_THRESHOLD=0.7        # Minimum confidence to advance state (0.0-1.0)
 LLM_MODEL=gpt-4-turbo-preview   # OpenAI model to use
 LLM_TEMPERATURE=0.3              # Lower = more consistent (0.0-2.0)
+
+# Research Configuration
+RESEARCH_MODEL=llama-3.1-sonar-large-128k-online  # Perplexity model
+RESEARCH_TIMEOUT=30000                             # Research timeout in ms
 
 # Server Configuration
 PORT=3000
@@ -251,15 +271,161 @@ if (result.persisted) {
 }
 ```
 
+## Company Research Hook
+
+The research hook automatically researches companies before sending personalized messages.
+
+### How It Works
+
+```typescript
+// The hook executes automatically when:
+// 1. lead.state === QUALIFIED
+// 2. campaign.messaging_rules.personalization === true
+
+import { MessagingController } from './controllers/MessagingController';
+
+// Initialize controller with research capabilities
+const messagingController = new MessagingController(
+  preMessageHook,
+  messageService,
+  storageService
+);
+
+// Prepare message (automatically triggers research if conditions met)
+const result = await messagingController.prepareMessage(leadId, 'initial');
+
+console.log(`Research performed: ${result.researchPerformed}`);
+console.log(`Message: ${result.message}`);
+```
+
+### Research Snapshot Schema
+
+Research is persisted to `lead.research_snapshot`:
+
+```typescript
+interface ResearchSnapshot {
+  companyName: string;
+  companyDescription: string;
+  industry: string;
+  recentNews: string[];           // Latest company news
+  keyProducts: string[];          // Main products/services
+  challenges: string[];           // Potential pain points
+  opportunities: string[];        // Growth areas
+  fundingInfo: string;            // Recent funding rounds
+  employeeCount: string;          // Company size
+  researched_at: Date;            // When research was performed
+  sources: string[];              // Source URLs
+}
+```
+
+### Conditional Logic
+
+The research hook has built-in conditional logic:
+
+```typescript
+// ✅ Research WILL run
+const lead = {
+  state: 'QUALIFIED',              // ← Required
+  company: 'Stripe'
+};
+const campaign = {
+  messaging_rules: {
+    personalization: true          // ← Required
+  }
+};
+
+// ❌ Research will NOT run (wrong state)
+const lead = {
+  state: 'NEW',                    // Not QUALIFIED
+  company: 'Stripe'
+};
+
+// ❌ Research will NOT run (personalization disabled)
+const campaign = {
+  messaging_rules: {
+    personalization: false         // Disabled
+  }
+};
+```
+
+### Research Tool Usage
+
+You can also manually trigger research:
+
+```typescript
+import { ResearchCompanyTool } from './tools/researchCompany';
+
+const researchTool = new ResearchCompanyTool(perplexityService, storageService);
+
+// Execute research
+const result = await researchTool.execute({
+  leadId: 'lead-123',
+  companyName: 'Stripe',
+  additionalContext: 'Focus on payment processing challenges'
+});
+
+if (result.success) {
+  console.log('Research completed:', result.snapshot);
+}
+```
+
+### Message Generation with Research
+
+Messages automatically use research when available:
+
+```typescript
+const messageService = new MessageGenerationService(researchTool);
+
+// If lead has research_snapshot, it will be included in message generation
+const message = await messageService.generateMessage(
+  lead,
+  campaign,
+  'initial'
+);
+
+// Example output:
+// "Hi Sarah, I noticed Stripe recently announced expansion into crypto payments.
+// Given your focus on global payment infrastructure, I thought you'd be interested
+// in how we help companies like yours..."
+```
+
+### Research Hook Benefits
+
+- **Up-to-date Information**: Uses Perplexity's online models for current data
+- **Automatic Execution**: No manual research needed
+- **Smart Caching**: Research is reused for 7 days to avoid redundant API calls
+- **Personalization**: Messages reference specific company challenges and news
+- **Conditional**: Only runs when needed based on lead state and campaign settings
+
 ## Examples
 
-Run the example script:
+### Intent Classification Example
+
+Run the classification example:
 
 ```bash
 npm run dev examples/basic-usage.ts
 ```
 
-Or test the API:
+### Research Hook Example
+
+Run the research hook demonstration:
+
+```bash
+# Make sure you have PERPLEXITY_API_KEY in .env
+npm run dev examples/research-hook-demo.ts
+```
+
+This example demonstrates:
+- Creating a campaign with personalization enabled
+- Creating a QUALIFIED lead
+- Automatic research execution
+- Message generation with research insights
+- Conditional logic (research only runs when conditions are met)
+
+### API Testing
+
+Test the API endpoints:
 
 ```bash
 # Make sure server is running first
@@ -267,6 +433,7 @@ npm run dev
 
 # In another terminal
 bash examples/api-usage.sh
+bash examples/research-api-usage.sh
 ```
 
 ## Project Structure
@@ -275,24 +442,37 @@ bash examples/api-usage.sh
 linkedin/
 ├── src/
 │   ├── types/
-│   │   └── index.ts              # Type definitions and schemas
+│   │   └── index.ts                        # Type definitions and schemas
 │   ├── config/
-│   │   └── llm.config.ts         # LLM configuration
+│   │   ├── llm.config.ts                   # OpenAI configuration
+│   │   └── perplexity.config.ts            # Perplexity configuration (NEW)
 │   ├── utils/
-│   │   └── promptTemplates.ts    # Classification prompts
+│   │   └── promptTemplates.ts              # Classification prompts
 │   ├── services/
-│   │   ├── LLMService.ts         # OpenAI integration
-│   │   └── StorageService.ts     # Data persistence
+│   │   ├── LLMService.ts                   # OpenAI integration
+│   │   ├── PerplexityService.ts            # Perplexity research (NEW)
+│   │   ├── MessageGenerationService.ts     # Message generation (NEW)
+│   │   └── StorageService.ts               # Data persistence
+│   ├── tools/
+│   │   └── researchCompany.ts              # Research tool (NEW)
+│   ├── hooks/
+│   │   └── PreMessageHook.ts               # Pre-message hooks (NEW)
 │   ├── controllers/
-│   │   └── ClassificationController.ts  # Main controller
+│   │   ├── ClassificationController.ts     # Intent classification
+│   │   └── MessagingController.ts          # Messaging orchestration (NEW)
 │   ├── api/
-│   │   └── routes.ts             # Express routes
-│   └── index.ts                  # Application entry point
+│   │   └── routes.ts                       # Express routes
+│   └── index.ts                            # Application entry point
 ├── examples/
-│   ├── basic-usage.ts            # Programmatic usage example
-│   └── api-usage.sh              # API usage examples
-├── data/                         # Storage directory (auto-created)
-├── .env.example                  # Environment template
+│   ├── basic-usage.ts                      # Classification example
+│   ├── research-hook-demo.ts               # Research hook demo (NEW)
+│   ├── api-usage.sh                        # API examples
+│   └── research-api-usage.sh               # Research API examples (NEW)
+├── data/                                   # Storage directory (auto-created)
+│   ├── leads.json
+│   ├── campaigns.json                      # Campaign storage (NEW)
+│   └── classifications.json
+├── .env.example                            # Environment template
 ├── package.json
 ├── tsconfig.json
 └── README.md
