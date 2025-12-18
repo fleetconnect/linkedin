@@ -88,7 +88,15 @@ The Campaign model includes the following fields:
 
 ## Usage
 
-### Development Mode
+### Start API Server
+
+```bash
+npm run dev:api
+```
+
+The API server will start on `http://localhost:3000`
+
+### Development Mode (Examples)
 
 ```bash
 npm run dev
@@ -98,12 +106,127 @@ npm run dev
 
 ```bash
 npm run build
+npm start
 ```
 
 ### Prisma Studio (Database GUI)
 
 ```bash
 npm run prisma:studio
+```
+
+## REST API
+
+The system provides a thin orchestration layer that wraps stateless tools with state management.
+
+**Base URL**: `http://localhost:3000/api`
+
+### Orchestration Pattern
+
+Each endpoint follows this pattern:
+1. **Load** Lead + Campaign from database
+2. **Call** stateless tool (normalize, score, generate-message, classify-reply)
+3. **Persist** tool output to the Lead object
+4. **Advance** lead state
+5. **Return** updated lead
+
+This turns stateless tools into a stateful system. **Every tool mutation updates the Lead object.**
+
+### Endpoints
+
+#### Create Lead
+```http
+POST /api/leads
+Content-Type: application/json
+
+{
+  "campaign_id": "uuid",
+  "raw_input": {
+    "name": "John Doe",
+    "title": "CTO",
+    "company": "Tech Corp",
+    "linkedin_url": "https://linkedin.com/in/johndoe"
+  }
+}
+```
+
+#### Normalize Lead
+```http
+POST /api/leads/:id/normalize
+
+# Loads lead, calls normalize tool, saves normalized data, advances to NORMALIZED
+```
+
+#### Score Lead
+```http
+POST /api/leads/:id/score
+
+# Loads lead + campaign, calls score tool with scoring rules,
+# saves score, advances to QUALIFIED or DISQUALIFIED
+```
+
+#### Generate Message
+```http
+POST /api/leads/:id/generate-message
+Content-Type: application/json
+
+{
+  "intent": "initial_outreach"  # or "follow_up", "value_proposition"
+}
+
+# Loads lead + campaign, calls generateMessage tool with messaging rules,
+# appends message to messages array, updates last_intent
+```
+
+#### Classify Reply
+```http
+POST /api/leads/:id/classify-reply
+Content-Type: application/json
+
+{
+  "reply_text": "Yes, I'm interested. Let's schedule a call."
+}
+
+# Loads lead, calls classifyReply tool, appends to messages,
+# advances state based on intent (e.g., REPLIED -> BOOKED)
+```
+
+#### Get Lead
+```http
+GET /api/leads/:id
+```
+
+#### List Leads
+```http
+GET /api/leads?campaign_id=uuid&state=QUALIFIED&limit=50&offset=0
+```
+
+### Example API Workflow
+
+```bash
+# 1. Create lead
+curl -X POST http://localhost:3000/api/leads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaign_id": "campaign-uuid",
+    "raw_input": {"name": "John Doe", "title": "CTO", "company": "Tech Corp"}
+  }'
+
+# 2. Normalize (NEW -> NORMALIZED)
+curl -X POST http://localhost:3000/api/leads/{lead-id}/normalize
+
+# 3. Score (NORMALIZED -> QUALIFIED/DISQUALIFIED)
+curl -X POST http://localhost:3000/api/leads/{lead-id}/score
+
+# 4. Generate message
+curl -X POST http://localhost:3000/api/leads/{lead-id}/generate-message \
+  -H "Content-Type: application/json" \
+  -d '{"intent": "initial_outreach"}'
+
+# 5. Classify reply (CONTACTED -> REPLIED -> BOOKED)
+curl -X POST http://localhost:3000/api/leads/{lead-id}/classify-reply \
+  -H "Content-Type: application/json" \
+  -d '{"reply_text": "Yes, let me schedule a call"}'
 ```
 
 ## Example Usage
