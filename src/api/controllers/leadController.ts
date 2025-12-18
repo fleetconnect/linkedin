@@ -160,12 +160,16 @@ export async function generateLeadMessage(req: Request, res: Response) {
       });
     }
 
-    // 2. Call stateless tool
-    const messageData = generateMessage(
+    // 2. Call stateless tool (now async with LLM)
+    const messageData = await generateMessage(
       lead.normalized,
       lead.campaign.messaging_rules,
       intent
     );
+
+    if (!messageData) {
+      return res.status(500).json({ error: 'Failed to generate message' });
+    }
 
     // 3. Persist output to Lead
     // 4. Advance state to CONTACTED
