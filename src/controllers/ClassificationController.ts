@@ -12,6 +12,8 @@ import {
   Message
 } from '../types';
 import { llmConfig } from '../config/llm.config';
+import { validateTransition } from '../utils/stateTransitionGuard';
+import { isDuplicateClassification } from '../utils/idempotencyGuard';
 
 /**
  * Controller responsible for:
@@ -53,6 +55,7 @@ export class ClassificationController {
       skipStateAdvancement?: boolean;
       skipPersistence?: boolean;
       skipFollowup?: boolean;
+      skipIdempotencyCheck?: boolean;
     }
   ): Promise<{
     classification: IntentClassification;
@@ -67,6 +70,22 @@ export class ClassificationController {
     const lead = await this.storageService.getLead(leadId);
     if (!lead) {
       throw new Error(`Lead not found: ${leadId}`);
+    }
+
+    // Idempotency check: prevent duplicate classifications
+    if (!options?.skipIdempotencyCheck) {
+      const duplicateCheck = isDuplicateClassification(lead, messageContent);
+      if (duplicateCheck.isDuplicate) {
+        console.warn(`⚠️  ${duplicateCheck.reason}. Returning existing classification.`);
+        return {
+          classification: lead.lastClassification!,
+          stateAdvanced: false,
+          persisted: false,
+          meetsThreshold: true,
+          followupGenerated: false,
+          reasoning: 'Idempotent operation - duplicate classification skipped'
+        };
+      }
     }
 
     // Build conversation context
@@ -169,6 +188,7 @@ export class ClassificationController {
 
   /**
    * Advance lead state based on classification
+   * Uses state transition guard for validation
    */
   private async advanceLeadState(
     leadId: string,
@@ -182,16 +202,27 @@ export class ClassificationController {
     const currentState = lead.state;
     const nextState = classification.next_state;
 
-    // Validate state transition
-    if (!this.isValidStateTransition(currentState, nextState)) {
+    // Validate state transition using guard
+    const validation = validateTransition(currentState, nextState);
+
+    if (!validation.valid) {
       console.warn(
-        `Invalid state transition from ${currentState} to ${nextState}. Skipping.`
+        `❌ Invalid state transition: ${currentState} → ${nextState}. ${validation.reason}`
       );
       return false;
     }
 
-    // Update lead state
-    await this.storageService.updateLeadState(leadId, nextState);
+    if (validation.warning) {
+      console.warn(`⚠️  ${validation.warning}`);
+    }
+
+    // Update lead state (will validate again in storage layer)
+    try {
+      await this.storageService.updateLeadState(leadId, nextState);
+    } catch (error) {
+      console.error(`Failed to update lead state: ${error}`);
+      return false;
+    }
 
     console.log(
       `Lead ${leadId} state advanced: ${currentState} → ${nextState} ` +
@@ -214,32 +245,6 @@ export class ClassificationController {
       `Persisted classification for lead ${leadId}: ${classification.intent} ` +
       `(confidence: ${classification.confidence})`
     );
-  }
-
-  /**
-   * Validate state transition logic
-   */
-  private isValidStateTransition(
-    currentState: LeadState,
-    nextState: LeadState
-  ): boolean {
-    // Define valid state transitions
-    const validTransitions: Record<LeadState, LeadState[]> = {
-      [LeadState.NEW]: [LeadState.CONTACTED, LeadState.REPLIED],
-      [LeadState.CONTACTED]: [LeadState.REPLIED, LeadState.INTERESTED, LeadState.LOST],
-      [LeadState.REPLIED]: [LeadState.INTERESTED, LeadState.BOOKED, LeadState.CLOSED, LeadState.LOST],
-      [LeadState.INTERESTED]: [LeadState.BOOKED, LeadState.REPLIED, LeadState.LOST],
-      [LeadState.BOOKED]: [LeadState.CLOSED, LeadState.LOST],
-      [LeadState.CLOSED]: [],
-      [LeadState.LOST]: []
-    };
-
-    // Allow staying in the same state
-    if (currentState === nextState) {
-      return true;
-    }
-
-    return validTransitions[currentState]?.includes(nextState) ?? false;
   }
 
   /**

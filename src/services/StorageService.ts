@@ -1,6 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { Lead, Message, IntentClassification, LeadState, Campaign, ResearchSnapshot } from '../types';
+import { validateTransition, assertValidTransition } from '../utils/stateTransitionGuard';
+import { isDuplicateMessage } from '../utils/idempotencyGuard';
 
 /**
  * Simple file-based storage service for leads and classifications
@@ -74,10 +76,32 @@ export class StorageService {
 
   /**
    * Save or update a lead
+   * Includes state transition validation
    */
-  async saveLead(lead: Lead): Promise<Lead> {
+  async saveLead(lead: Lead, options?: {
+    skipStateValidation?: boolean;
+  }): Promise<Lead> {
     const leads = await this.getLeads();
     const existingIndex = leads.findIndex(l => l.id === lead.id);
+
+    // Validate state transition if updating existing lead
+    if (existingIndex >= 0 && !options?.skipStateValidation) {
+      const existingLead = leads[existingIndex];
+
+      if (existingLead.state !== lead.state) {
+        const validation = validateTransition(existingLead.state, lead.state);
+
+        if (!validation.valid) {
+          throw new Error(
+            `Invalid state transition: ${existingLead.state} → ${lead.state}. ${validation.reason}`
+          );
+        }
+
+        if (validation.warning) {
+          console.warn(`⚠️  ${validation.warning}`);
+        }
+      }
+    }
 
     lead.updatedAt = new Date();
 
@@ -92,33 +116,69 @@ export class StorageService {
   }
 
   /**
-   * Update lead state
+   * Update lead state with transition validation
    */
-  async updateLeadState(leadId: string, newState: LeadState): Promise<Lead | null> {
+  async updateLeadState(
+    leadId: string,
+    newState: LeadState,
+    options?: {
+      allowTerminalOverride?: boolean;
+    }
+  ): Promise<Lead | null> {
     const lead = await this.getLead(leadId);
     if (!lead) {
       return null;
     }
 
+    // Validate transition
+    assertValidTransition(lead.state, newState, {
+      allowTerminalOverride: options?.allowTerminalOverride
+    });
+
     lead.state = newState;
     lead.updatedAt = new Date();
 
-    return await this.saveLead(lead);
+    return await this.saveLead(lead, { skipStateValidation: true });  // Already validated above
   }
 
   /**
    * Add message to lead's conversation history
+   * Includes idempotency check to prevent duplicate messages
    */
-  async addMessage(leadId: string, message: Message): Promise<Lead | null> {
+  async addMessage(
+    leadId: string,
+    message: Message,
+    options?: {
+      skipDuplicateCheck?: boolean;
+      duplicateWindowMs?: number;
+    }
+  ): Promise<Lead | null> {
     const lead = await this.getLead(leadId);
     if (!lead) {
       return null;
+    }
+
+    // Check for duplicate messages (unless explicitly skipped)
+    if (!options?.skipDuplicateCheck) {
+      const duplicateCheck = isDuplicateMessage(
+        lead,
+        message.content,
+        message.sender,
+        { timeWindowMs: options?.duplicateWindowMs }
+      );
+
+      if (duplicateCheck.isDuplicate) {
+        console.warn(
+          `⚠️  Duplicate message detected for lead ${leadId}: ${duplicateCheck.reason}. Skipping.`
+        );
+        return lead;  // Return unchanged lead (idempotent)
+      }
     }
 
     lead.conversationHistory.push(message);
     lead.updatedAt = new Date();
 
-    return await this.saveLead(lead);
+    return await this.saveLead(lead, { skipStateValidation: true });
   }
 
   /**
