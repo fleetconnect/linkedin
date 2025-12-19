@@ -87,13 +87,14 @@ export class DraftFollowupTool {
         customPrompt
       );
 
-      // Create message object
+      // Create message object with variant tracking for A/B testing
       const message: Message = {
         id: uuidv4(),
         leadId: lead.id,
         content: messageContent,
         sender: 'user',
-        timestamp: new Date()
+        timestamp: new Date(),
+        variant: campaign.messaging_rules.prompt_variant // A/B testing variant
       };
 
       // Add to lead's conversation history

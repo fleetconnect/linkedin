@@ -19,6 +19,7 @@ export class MessageGenerationService {
 
   /**
    * Generate a personalized message for a lead using Claude
+   * Supports A/B testing via campaign.messaging_rules.prompt_variant
    */
   async generateMessage(
     lead: Lead,
@@ -26,7 +27,8 @@ export class MessageGenerationService {
     messageType: 'initial' | 'follow-up' | 'reply',
     customPrompt?: string
   ): Promise<string> {
-    const systemPrompt = this.getSystemPrompt(campaign);
+    const variant = campaign.messaging_rules.prompt_variant;
+    const systemPrompt = this.getSystemPrompt(campaign, variant);
     const userPrompt = this.buildMessagePrompt(lead, campaign, messageType, customPrompt);
 
     try {
@@ -90,8 +92,9 @@ export class MessageGenerationService {
 
   /**
    * Get system prompt based on campaign settings
+   * Supports A/B testing with variant-specific instructions
    */
-  private getSystemPrompt(campaign: Campaign): string {
+  private getSystemPrompt(campaign: Campaign, variant?: 'A' | 'B'): string {
     const tone = campaign.messaging_rules.toneOfVoice || 'professional';
 
     const toneInstructions = {
@@ -100,7 +103,7 @@ export class MessageGenerationService {
       friendly: 'Use a warm, friendly tone. Be personable and conversational.'
     };
 
-    return `You are an expert LinkedIn outreach specialist. Your goal is to write compelling, personalized messages that get responses.
+    let basePrompt = `You are an expert LinkedIn outreach specialist. Your goal is to write compelling, personalized messages that get responses.
 
 Tone: ${toneInstructions[tone]}
 
@@ -111,6 +114,15 @@ Key principles:
 - Include a clear, low-friction call to action
 - Avoid overly salesy language
 - Be authentic and human`;
+
+    // A/B variant modifications
+    if (variant === 'A') {
+      basePrompt += `\n\n[Variant A: Lead with a question or insight]`;
+    } else if (variant === 'B') {
+      basePrompt += `\n\n[Variant B: Lead with a value proposition]`;
+    }
+
+    return basePrompt;
   }
 
   /**

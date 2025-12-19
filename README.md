@@ -27,6 +27,12 @@ LLM-based intent classification system for LinkedIn message replies with automat
 - 🔗 **Complete Loop**: Closes the conversational loop automatically
 - ⚡ **ENFORCED**: Claude-only for message generation
 
+### A/B Testing 🧪
+- 📊 **Variant Tracking**: Track prompt variants ('A' or 'B') on every message
+- 📈 **Performance Analytics**: Compare response rates and conversion metrics
+- 🎯 **Statistical Confidence**: Automatic winner detection with confidence levels
+- ⚡ **Lightweight**: Minimal hooks, easy to extend for enterprise needs
+
 ### General
 - 🚀 **REST API**: Easy integration with Express.js endpoints
 - ✅ **Type-Safe**: Built with TypeScript and Zod validation
@@ -579,6 +585,100 @@ console.log(lead.conversationHistory.length); // 3 messages now
 - Negative leads are automatically respected (no spam)
 
 This is **where most outbound systems fail** - they can classify intent but can't act on it automatically. The `draft-followup` tool closes that gap.
+
+## A/B Testing Hooks 🧪
+
+Lightweight A/B testing infrastructure for message prompt optimization. Not a full platform - just minimal hooks for testing and tracking variant performance.
+
+### Features
+
+- 📊 **Variant Tracking**: Track 'A' or 'B' variant on every message
+- 📈 **Performance Analytics**: Compare response rates and conversions
+- 🎯 **Data-Driven Decisions**: Get recommendations based on statistical significance
+- ⚡ **Zero Overhead**: Minimal implementation, easy to extend
+
+### Quick Start
+
+**1. Set variant in campaign:**
+
+```typescript
+const campaign: Campaign = {
+  messaging_rules: {
+    personalization: true,
+    prompt_variant: 'A'  // or 'B'
+  }
+};
+```
+
+**2. Messages automatically track variant:**
+
+```typescript
+// Generated message includes variant
+{
+  id: 'msg-123',
+  content: 'Your message...',
+  variant: 'A',  // Automatically set
+  timestamp: '...'
+}
+```
+
+**3. Analyze performance:**
+
+```bash
+# Get variant comparison
+GET /api/analytics/variants
+
+# Get formatted report
+GET /api/analytics/variants/report
+
+# Campaign-specific analytics
+GET /api/analytics/variants/campaign/:campaignId
+```
+
+### Analytics Response
+
+```json
+{
+  "variantA": {
+    "totalSent": 50,
+    "responseRate": 0.30,
+    "positiveResponseRate": 0.20,
+    "interestedResponses": 7,
+    "bookedResponses": 3
+  },
+  "variantB": {
+    "totalSent": 48,
+    "responseRate": 0.25,
+    "positiveResponseRate": 0.125,
+    "interestedResponses": 4,
+    "bookedResponses": 2
+  },
+  "winner": "A",
+  "confidenceLevel": "medium",
+  "recommendation": "Variant A is performing better..."
+}
+```
+
+### Best Practices
+
+1. **Split traffic evenly** - Create two campaigns with same settings, different variants
+2. **Run long enough** - Minimum 20 messages per variant, recommended 50+
+3. **One variable at a time** - Only test variant, keep everything else constant
+4. **Wait for significance** - Don't make decisions on < 20 messages
+
+### Customization
+
+Modify `MessageGenerationService.getSystemPrompt()` to test different approaches:
+
+```typescript
+if (variant === 'A') {
+  basePrompt += `\n\n[Variant A: Lead with industry insight]`;
+} else if (variant === 'B') {
+  basePrompt += `\n\n[Variant B: Lead with social proof]`;
+}
+```
+
+📖 **Full documentation**: See [docs/ab-testing.md](./docs/ab-testing.md)
 
 ## Examples
 

@@ -74,6 +74,7 @@ export interface Message {
   sender: 'user' | 'lead';
   timestamp: Date;
   classification?: IntentClassification;
+  variant?: 'A' | 'B'; // A/B testing variant
 }
 
 // Classification request
@@ -107,6 +108,7 @@ export interface MessagingRules {
   maxMessagesPerDay?: number;
   researchRequired?: boolean;
   toneOfVoice?: 'professional' | 'casual' | 'friendly';
+  prompt_variant?: 'A' | 'B'; // A/B testing prompt variant
 }
 
 export interface Campaign {

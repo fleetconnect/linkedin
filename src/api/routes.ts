@@ -1,11 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { ClassificationController } from '../controllers/ClassificationController';
 import { DraftFollowupTool } from '../tools/draftFollowup';
+import { StorageService } from '../services/StorageService';
+import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { v4 as uuidv4 } from 'uuid';
 
 export function createRouter(
   controller: ClassificationController,
-  followupTool?: DraftFollowupTool
+  followupTool?: DraftFollowupTool,
+  storageService?: StorageService
 ): Router {
   const router = Router();
 
@@ -234,6 +237,93 @@ export function createRouter(
 
       } catch (error) {
         console.error('Campaign follow-up generation error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== A/B Testing Analytics Routes ====================
+
+  if (storageService) {
+    /**
+     * GET /api/analytics/variants
+     * Get A/B test performance comparison across all leads
+     */
+    router.get('/analytics/variants', async (req: Request, res: Response) => {
+      try {
+        const leads = await storageService.getLeads();
+        const comparison = compareVariants(leads);
+
+        return res.json({
+          success: true,
+          data: comparison
+        });
+
+      } catch (error) {
+        console.error('Variant analytics error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/analytics/variants/report
+     * Get formatted A/B test report
+     */
+    router.get('/analytics/variants/report', async (req: Request, res: Response) => {
+      try {
+        const leads = await storageService.getLeads();
+        const comparison = compareVariants(leads);
+        const report = formatComparison(comparison);
+
+        return res.json({
+          success: true,
+          data: {
+            report,
+            comparison
+          }
+        });
+
+      } catch (error) {
+        console.error('Variant report error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/analytics/variants/campaign/:campaignId
+     * Get A/B test performance for a specific campaign
+     */
+    router.get('/analytics/variants/campaign/:campaignId', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+        const allLeads = await storageService.getLeads();
+        const campaignLeads = allLeads.filter(l => l.campaignId === campaignId);
+
+        if (campaignLeads.length === 0) {
+          return res.status(404).json({
+            error: `No leads found for campaign: ${campaignId}`
+          });
+        }
+
+        const comparison = compareVariants(campaignLeads);
+
+        return res.json({
+          success: true,
+          data: {
+            campaignId,
+            leadCount: campaignLeads.length,
+            comparison
+          }
+        });
+
+      } catch (error) {
+        console.error('Campaign variant analytics error:', error);
         return res.status(500).json({
           error: error instanceof Error ? error.message : 'Internal server error'
         });

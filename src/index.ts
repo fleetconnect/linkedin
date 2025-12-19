@@ -42,8 +42,8 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // Add routes
-  app.use('/api', createRouter(controller));
+  // Add routes (pass storageService for analytics endpoints)
+  app.use('/api', createRouter(controller, undefined, storageService));
 
   // Start server
   app.listen(PORT, () => {
