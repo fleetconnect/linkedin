@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { claudeConfig } from '../config/claude.config';
-import { buildClassificationPrompt } from '../utils/promptTemplates';
+import { selectPrompt } from '../prompts/registry';
+import type { ClassifyReplyInput } from '../prompts/types';
 import {
   IntentClassification,
   IntentClassificationSchema,
@@ -23,27 +24,40 @@ export class LLMService {
   }
 
   /**
-   * Classify a message using Claude
+   * Classify a message using Claude with prompt registry
    */
   async classifyIntent(request: ClassificationRequest): Promise<ClassificationResult> {
-    const prompt = buildClassificationPrompt(
-      request.messageContent,
-      {
-        conversationHistory: request.conversationContext,
-        leadName: request.leadInfo?.name,
-        previousState: request.leadInfo?.previousState
-      }
-    );
+    // Select prompt from registry
+    const prompt = selectPrompt<ClassifyReplyInput>({
+      type: 'classify_reply',
+      version: 'v1'
+    });
+
+    // Build input for prompt
+    const input: ClassifyReplyInput = {
+      messageContent: request.messageContent,
+      conversationContext: request.conversationContext,
+      leadInfo: request.leadInfo
+    };
+
+    // Get system prompt
+    const systemPrompt = typeof prompt.system === 'function'
+      ? prompt.system(input)
+      : prompt.system;
+
+    // Get user prompt
+    const userPrompt = prompt.user(input);
 
     try {
       const message = await this.client.messages.create({
-        model: claudeConfig.classificationModel,
-        max_tokens: claudeConfig.classificationMaxTokens,
-        temperature: claudeConfig.classificationTemperature,
+        model: prompt.model,
+        max_tokens: prompt.maxTokens,
+        temperature: prompt.temperature,
+        system: systemPrompt,
         messages: [
           {
             role: 'user',
-            content: prompt
+            content: userPrompt
           }
         ]
       });
@@ -76,7 +90,7 @@ export class LLMService {
         classification,
         reasoning: parsed.reasoning,
         timestamp: new Date(),
-        modelUsed: claudeConfig.classificationModel
+        modelUsed: prompt.model
       };
 
     } catch (error) {
