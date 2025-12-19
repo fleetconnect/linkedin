@@ -1,8 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { ClassificationController } from '../controllers/ClassificationController';
+import { DraftFollowupTool } from '../tools/draftFollowup';
 import { v4 as uuidv4 } from 'uuid';
 
-export function createRouter(controller: ClassificationController): Router {
+export function createRouter(
+  controller: ClassificationController,
+  followupTool?: DraftFollowupTool
+): Router {
   const router = Router();
 
   /**
@@ -93,6 +97,149 @@ export function createRouter(controller: ClassificationController): Router {
   router.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
+
+  // ==================== Follow-up Routes ====================
+
+  if (followupTool) {
+    /**
+     * POST /api/followup/generate
+     * Generate follow-up for a single lead
+     */
+    router.post('/followup/generate', async (req: Request, res: Response) => {
+      try {
+        const { leadId, customPrompt } = req.body;
+
+        if (!leadId) {
+          return res.status(400).json({
+            error: 'Missing required field: leadId'
+          });
+        }
+
+        const result = await followupTool.execute(leadId, customPrompt);
+
+        return res.json({
+          success: true,
+          data: result
+        });
+
+      } catch (error) {
+        console.error('Follow-up generation error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/followup/batch
+     * Generate follow-ups for multiple leads
+     */
+    router.post('/followup/batch', async (req: Request, res: Response) => {
+      try {
+        const { leadIds } = req.body;
+
+        if (!Array.isArray(leadIds) || leadIds.length === 0) {
+          return res.status(400).json({
+            error: 'leadIds must be a non-empty array'
+          });
+        }
+
+        const results = await followupTool.executeBatch(leadIds);
+
+        // Convert Map to object for JSON response
+        const resultsObj = Object.fromEntries(results);
+
+        return res.json({
+          success: true,
+          data: resultsObj
+        });
+
+      } catch (error) {
+        console.error('Batch follow-up error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/followup/eligible/:leadId
+     * Check if a lead is eligible for follow-up
+     */
+    router.get('/followup/eligible/:leadId', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+
+        const eligibility = await followupTool.checkEligibility(leadId);
+
+        return res.json({
+          success: true,
+          data: eligibility
+        });
+
+      } catch (error) {
+        console.error('Eligibility check error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/followup/campaign/:campaignId/eligible
+     * Get all leads needing follow-up in a campaign
+     */
+    router.get('/followup/campaign/:campaignId/eligible', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+
+        const leads = await followupTool.getLeadsNeedingFollowup(campaignId);
+
+        return res.json({
+          success: true,
+          data: {
+            count: leads.length,
+            leads: leads.map(l => ({
+              id: l.id,
+              name: l.name,
+              company: l.company,
+              lastIntent: l.lastClassification?.intent,
+              confidence: l.lastClassification?.confidence
+            }))
+          }
+        });
+
+      } catch (error) {
+        console.error('Campaign eligible leads error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/followup/campaign/:campaignId/generate-all
+     * Generate follow-ups for all eligible leads in a campaign
+     */
+    router.post('/followup/campaign/:campaignId/generate-all', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+
+        const results = await followupTool.generateFollowupsForCampaign(campaignId);
+
+        return res.json({
+          success: true,
+          data: results
+        });
+
+      } catch (error) {
+        console.error('Campaign follow-up generation error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
 
   return router;
 }

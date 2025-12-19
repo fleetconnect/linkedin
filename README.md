@@ -11,12 +11,19 @@ LLM-based intent classification system for LinkedIn message replies with automat
 - 🔄 **State Management**: Automatic lead state advancement based on intent
 - 💾 **Persistent Storage**: Saves all classifications and conversation history
 
-### Company Research (NEW)
+### Company Research
 - 🔍 **Automated Research**: Uses Perplexity AI for up-to-date company information
 - 🎣 **Pre-Message Hook**: Automatically runs before sending messages
 - ⚙️ **Conditional Execution**: Only runs when `lead.state === QUALIFIED` and `personalization === true`
 - 📝 **Research Persistence**: Saves research to `lead.research_snapshot`
 - ✉️ **Personalized Messages**: Integrates research into message generation
+
+### Follow-up Generation (NEW) ⭐
+- 🔄 **Auto-Follow-ups**: Automatically generates follow-up messages after classification
+- 🎯 **Conditional Logic**: Only generates for `interested` and `neutral` intents
+- ❌ **Never for Negative**: Prevents spam by never following up on negative responses
+- 📝 **Conversation Persistence**: Adds follow-ups to `lead.conversationHistory`
+- 🔗 **Complete Loop**: Closes the conversational loop automatically
 
 ### General
 - 🚀 **REST API**: Easy integration with Express.js endpoints
@@ -397,6 +404,172 @@ const message = await messageService.generateMessage(
 - **Personalization**: Messages reference specific company challenges and news
 - **Conditional**: Only runs when needed based on lead state and campaign settings
 
+## Follow-up Generation Tool ⭐
+
+The `draft-followup` tool completes the conversational loop by automatically generating follow-ups for leads who reply.
+
+### How It Works
+
+```typescript
+// Initialize with auto-follow-ups enabled
+const controller = new ClassificationController(
+  llmService,
+  storageService,
+  followupTool,
+  {
+    autoGenerateFollowups: true  // ← Enable auto-generation
+  }
+);
+
+// When lead replies, classification automatically triggers follow-up
+const result = await controller.classifyReply(leadId, replyMessage);
+
+console.log(result.followupGenerated);  // true or false
+console.log(result.followupMessage);     // The generated follow-up
+```
+
+### Conditional Logic - Critical Rules
+
+**✅ Follow-ups ARE generated for:**
+- `Intent.INTERESTED` - Lead shows interest, needs nurturing
+- `Intent.NEUTRAL` - Lead is non-committal, needs engagement
+
+**❌ Follow-ups are NEVER generated for:**
+- `Intent.NEGATIVE` - Lead said no, respect their decision (prevents spam)
+- `Intent.BOOKED` - Meeting already scheduled, no follow-up needed
+
+```typescript
+// Example classification results and follow-up generation
+
+// ✅ INTERESTED - Follow-up generated
+{
+  reply: "This sounds interesting, tell me more",
+  intent: "interested",
+  followupGenerated: true,
+  followupMessage: "Glad you're interested! Based on our earlier conversation..."
+}
+
+// ✅ NEUTRAL - Follow-up generated
+{
+  reply: "Thanks for the info, I'll keep it in mind",
+  intent: "neutral",
+  followupGenerated: true,
+  followupMessage: "I understand you're evaluating options. Just to add..."
+}
+
+// ❌ NEGATIVE - NO follow-up
+{
+  reply: "Not interested, please stop contacting me",
+  intent: "negative",
+  followupGenerated: false,
+  reason: "Lead is negative - do not follow up"
+}
+
+// ❌ BOOKED - NO follow-up
+{
+  reply: "Yes, let's do Tuesday at 2pm",
+  intent: "booked",
+  followupGenerated: false,
+  reason: "Lead already booked - no follow-up needed"
+}
+```
+
+### Where Follow-ups Are Stored
+
+Follow-ups are automatically added to `lead.conversationHistory`:
+
+```typescript
+const lead = await storage.getLead(leadId);
+
+// After classification with follow-up:
+lead.conversationHistory = [
+  { sender: 'user', content: 'Initial message...', timestamp: ... },
+  { sender: 'lead', content: 'Reply from lead...', timestamp: ..., classification: {...} },
+  { sender: 'user', content: 'Auto-generated follow-up...', timestamp: ... }  // ← Added!
+];
+```
+
+### Manual Follow-up Generation
+
+You can also manually generate follow-ups:
+
+```typescript
+import { DraftFollowupTool } from './tools/draftFollowup';
+
+const followupTool = new DraftFollowupTool(messageService, storageService);
+
+// Generate for single lead
+const result = await followupTool.execute(leadId);
+
+// Generate for multiple leads
+const results = await followupTool.executeBatch([leadId1, leadId2, leadId3]);
+
+// Check eligibility first
+const eligibility = await followupTool.checkEligibility(leadId);
+console.log(eligibility.eligible);  // true/false
+console.log(eligibility.reason);    // Explanation
+
+// Get all leads needing follow-up in a campaign
+const leads = await followupTool.getLeadsNeedingFollowup(campaignId);
+
+// Generate for entire campaign
+const campaignResults = await followupTool.generateFollowupsForCampaign(campaignId);
+```
+
+### API Endpoints
+
+```bash
+# Generate follow-up for single lead
+curl -X POST http://localhost:3000/api/followup/generate \
+  -H "Content-Type: application/json" \
+  -d '{"leadId": "lead-123"}'
+
+# Check if lead is eligible for follow-up
+curl http://localhost:3000/api/followup/eligible/lead-123
+
+# Get all eligible leads in campaign
+curl http://localhost:3000/api/followup/campaign/campaign-123/eligible
+
+# Generate follow-ups for all eligible leads in campaign
+curl -X POST http://localhost:3000/api/followup/campaign/campaign-123/generate-all
+```
+
+### Complete Loop Example
+
+```typescript
+// 1. Lead receives initial message
+await sendInitialMessage(leadId);
+
+// 2. Lead replies: "This looks interesting!"
+const reply = "This looks interesting!";
+
+// 3. System classifies reply + auto-generates follow-up
+const result = await controller.classifyReply(leadId, reply);
+// → Intent: interested
+// → Confidence: 0.92
+// → Follow-up: "Great! Based on what you mentioned about..."
+
+// 4. Follow-up is now in conversation history
+const lead = await storage.getLead(leadId);
+console.log(lead.conversationHistory.length); // 3 messages now
+
+// 5. Lead replies again - loop continues!
+```
+
+### Why This Matters
+
+**Without `draft-followup`, your system has a leak:**
+- Lead shows interest → You classify it → But nothing happens
+- Conversation dies, value is lost
+
+**With `draft-followup`, the loop is complete:**
+- Lead shows interest → Classified as interested → Follow-up auto-generated
+- Conversation continues, relationship builds
+- Neutral leads stay warm with consistent engagement
+- Negative leads are automatically respected (no spam)
+
+This is **where most outbound systems fail** - they can classify intent but can't act on it automatically. The `draft-followup` tool closes that gap.
+
 ## Examples
 
 ### Intent Classification Example
@@ -422,6 +595,25 @@ This example demonstrates:
 - Automatic research execution
 - Message generation with research insights
 - Conditional logic (research only runs when conditions are met)
+
+### Follow-up Loop Example ⭐
+
+Run the **complete conversational loop** demonstration:
+
+```bash
+npm run dev examples/followup-loop-demo.ts
+```
+
+This example demonstrates:
+- Lead replies with different intents (interested, neutral, negative, booked)
+- Automatic classification of each reply
+- Follow-up generation for interested/neutral ONLY
+- NO follow-up for negative (respects opt-out)
+- NO follow-up for booked (already scheduled)
+- Complete conversation history tracking
+- Campaign-wide follow-up management
+
+**This is the complete system in action!**
 
 ### API Testing
 

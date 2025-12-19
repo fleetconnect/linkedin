@@ -65,6 +65,7 @@ export {
   ClassificationController,
   PerplexityService,
   ResearchCompanyTool,
+  DraftFollowupTool,
   PreMessageHook,
   MessageGenerationService,
   MessagingController
@@ -76,6 +77,7 @@ export { MessageGenerationService } from './services/MessageGenerationService';
 
 // Re-export from tools
 export { ResearchCompanyTool } from './tools/researchCompany';
+export { DraftFollowupTool } from './tools/draftFollowup';
 
 // Re-export from hooks
 export { PreMessageHook } from './hooks/PreMessageHook';

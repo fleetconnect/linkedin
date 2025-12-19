@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { LLMService } from '../services/LLMService';
 import { StorageService } from '../services/StorageService';
+import { DraftFollowupTool } from '../tools/draftFollowup';
 import {
   IntentClassification,
   ClassificationRequest,
@@ -17,23 +18,28 @@ import { llmConfig } from '../config/llm.config';
  * 1. Validating confidence threshold
  * 2. Advancing Lead state
  * 3. Persisting intent classifications
+ * 4. Auto-generating follow-ups for interested/neutral leads
  */
 export class ClassificationController {
   private llmService: LLMService;
   private storageService: StorageService;
-  private config: ControllerConfig;
+  private followupTool?: DraftFollowupTool;
+  private config: ControllerConfig & { autoGenerateFollowups?: boolean };
 
   constructor(
     llmService: LLMService,
     storageService: StorageService,
-    config?: Partial<ControllerConfig>
+    followupTool?: DraftFollowupTool,
+    config?: Partial<ControllerConfig & { autoGenerateFollowups?: boolean }>
   ) {
     this.llmService = llmService;
     this.storageService = storageService;
+    this.followupTool = followupTool;
     this.config = {
       confidenceThreshold: config?.confidenceThreshold ?? llmConfig.confidenceThreshold,
       autoAdvanceState: config?.autoAdvanceState ?? true,
-      persistIntents: config?.persistIntents ?? true
+      persistIntents: config?.persistIntents ?? true,
+      autoGenerateFollowups: config?.autoGenerateFollowups ?? false
     };
   }
 
@@ -46,12 +52,15 @@ export class ClassificationController {
     options?: {
       skipStateAdvancement?: boolean;
       skipPersistence?: boolean;
+      skipFollowup?: boolean;
     }
   ): Promise<{
     classification: IntentClassification;
     stateAdvanced: boolean;
     persisted: boolean;
     meetsThreshold: boolean;
+    followupGenerated: boolean;
+    followupMessage?: string;
     reasoning?: string;
   }> {
     // Get lead data
@@ -97,6 +106,8 @@ export class ClassificationController {
 
     let stateAdvanced = false;
     let persisted = false;
+    let followupGenerated = false;
+    let followupMessage: string | undefined;
 
     // Only proceed with state advancement if confidence threshold is met
     if (meetsThreshold) {
@@ -116,6 +127,21 @@ export class ClassificationController {
         await this.persistIntent(leadId, message.id, classification);
         persisted = true;
       }
+
+      // Auto-generate follow-up if enabled and conditions are met
+      if (
+        this.config.autoGenerateFollowups &&
+        this.followupTool &&
+        !options?.skipFollowup
+      ) {
+        const followupResult = await this.followupTool.execute(leadId);
+        followupGenerated = followupResult.followupGenerated;
+        followupMessage = followupResult.message?.content;
+
+        if (followupGenerated) {
+          console.log(`📨 Follow-up auto-generated for ${lead.name}`);
+        }
+      }
     } else {
       console.warn(
         `Classification confidence ${classification.confidence} below threshold ${this.config.confidenceThreshold}. ` +
@@ -128,6 +154,8 @@ export class ClassificationController {
       stateAdvanced,
       persisted,
       meetsThreshold,
+      followupGenerated,
+      followupMessage,
       reasoning
     };
   }
