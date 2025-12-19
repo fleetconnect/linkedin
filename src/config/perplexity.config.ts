@@ -4,7 +4,7 @@ dotenv.config();
 
 export const perplexityConfig = {
   apiKey: process.env.PERPLEXITY_API_KEY || '',
-  model: process.env.RESEARCH_MODEL || 'llama-3.1-sonar-large-128k-online',
+  model: process.env.RESEARCH_MODEL || 'sonar-pro',
   timeout: parseInt(process.env.RESEARCH_TIMEOUT || '30000', 10),
   baseURL: 'https://api.perplexity.ai'
 };

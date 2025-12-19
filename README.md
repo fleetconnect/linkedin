@@ -81,8 +81,8 @@ LLM_MODEL=gpt-4-turbo-preview   # OpenAI model to use
 LLM_TEMPERATURE=0.3              # Lower = more consistent (0.0-2.0)
 
 # Research Configuration
-RESEARCH_MODEL=llama-3.1-sonar-large-128k-online  # Perplexity model
-RESEARCH_TIMEOUT=30000                             # Research timeout in ms
+RESEARCH_MODEL=sonar-pro           # Perplexity model
+RESEARCH_TIMEOUT=30000             # Research timeout in ms
 
 # Server Configuration
 PORT=3000
