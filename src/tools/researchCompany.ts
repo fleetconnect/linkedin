@@ -76,6 +76,14 @@ export class ResearchCompanyTool {
 
   /**
    * Check if research should run for a lead
+   *
+   * ARCHITECTURAL RULE: This logic is tier-agnostic. Research runs for ALL
+   * QUALIFIED leads with personalization enabled, regardless of license tier.
+   *
+   * Perplexity research is baseline message quality infrastructure, not a premium feature.
+   * See docs/research-architecture.md for canonical design.
+   *
+   * DO NOT add tier-based conditionals here.
    */
   shouldRunResearch(lead: Lead, personalizationEnabled: boolean): boolean {
     // Check if lead is in QUALIFIED state

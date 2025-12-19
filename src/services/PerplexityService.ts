@@ -5,6 +5,14 @@ import { ResearchSnapshot } from '../types';
 /**
  * Perplexity API Service for company research
  * Uses Perplexity's online AI models for up-to-date company information
+ *
+ * ARCHITECTURAL RULE: This service is tier-agnostic.
+ * All tiers use the same model, same depth, same quality.
+ *
+ * Perplexity research is baseline message quality infrastructure, not a premium feature.
+ * See docs/research-architecture.md for canonical design.
+ *
+ * DO NOT add tier-based parameters, model selection, or depth gating.
  */
 export class PerplexityService {
   private client: OpenAI;

@@ -13,6 +13,14 @@ import {
  * Executes actions before sending a message to a lead
  * Currently supports:
  * - Company research (runs when lead.state === QUALIFIED && personalization === true)
+ *
+ * ARCHITECTURAL RULE: Research hooks are tier-agnostic.
+ * Research runs for ALL QUALIFIED leads with personalization enabled.
+ *
+ * Perplexity research is baseline message quality infrastructure, not a premium feature.
+ * See docs/research-architecture.md for canonical design.
+ *
+ * DO NOT add tier-based conditionals to hook execution.
  */
 export class PreMessageHook {
   private researchTool: ResearchCompanyTool;
