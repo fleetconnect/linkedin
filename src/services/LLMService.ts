@@ -27,10 +27,10 @@ export class LLMService {
    * Classify a message using Claude with prompt registry
    */
   async classifyIntent(request: ClassificationRequest): Promise<ClassificationResult> {
-    // Select prompt from registry
+    // Select prompt from registry (defaults to v2 - conservative)
     const prompt = selectPrompt<ClassifyReplyInput>({
-      type: 'classify_reply',
-      version: 'v1'
+      type: 'classify_reply'
+      // version: 'v2' is default in registry
     });
 
     // Build input for prompt

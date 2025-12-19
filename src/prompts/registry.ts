@@ -20,7 +20,7 @@ import {
 } from './types';
 
 // Import all prompts
-import { classifyReplyV1 } from './classifyReply';
+import { classifyReplyV1, classifyReplyV2 } from './classifyReply';
 import { generateInitialV1, generateFollowupV1 } from './generateMessage';
 import { followUpPositiveV1, followUpNeutralV1 } from './followUp';
 
@@ -36,9 +36,19 @@ export function selectPrompt<TInput = any>(
 ): PromptDefinition<TInput> {
   // Classification prompts
   if (selector.type === 'classify_reply') {
-    // Currently only v1 exists
-    // Future: Could select based on experiment or version
-    return classifyReplyV1 as PromptDefinition<TInput>;
+    // Use specified version or default to v2 (conservative)
+    const version = selector.version || 'v2';
+
+    if (version === 'v2') {
+      return classifyReplyV2 as PromptDefinition<TInput>;
+    }
+
+    if (version === 'v1') {
+      return classifyReplyV1 as PromptDefinition<TInput>;
+    }
+
+    // Default to v2
+    return classifyReplyV2 as PromptDefinition<TInput>;
   }
 
   // Message generation prompts
@@ -85,7 +95,7 @@ export function selectPrompt<TInput = any>(
  */
 export function getAllPromptsForType(type: PromptSelector['type']): PromptDefinition[] {
   const prompts: Record<string, PromptDefinition[]> = {
-    classify_reply: [classifyReplyV1],
+    classify_reply: [classifyReplyV1, classifyReplyV2],
     generate_message: [generateInitialV1, generateFollowupV1],
     follow_up: [followUpPositiveV1, followUpNeutralV1]
   };
@@ -101,6 +111,7 @@ export function getAllPromptsForType(type: PromptSelector['type']): PromptDefini
 export function getPromptById(id: string): PromptDefinition | null {
   const allPrompts = [
     classifyReplyV1,
+    classifyReplyV2,
     generateInitialV1,
     generateFollowupV1,
     followUpPositiveV1,
@@ -123,6 +134,7 @@ export function listAllPrompts(): Array<{
 }> {
   const allPrompts = [
     classifyReplyV1,
+    classifyReplyV2,
     generateInitialV1,
     generateFollowupV1,
     followUpPositiveV1,
