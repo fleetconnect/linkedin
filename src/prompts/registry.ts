@@ -22,7 +22,7 @@ import {
 // Import all prompts
 import { classifyReplyV1, classifyReplyV2 } from './classifyReply';
 import { generateInitialV1, generateInitialV2, generateFollowupV1 } from './generateMessage';
-import { followUpPositiveV1, followUpNeutralV1 } from './followUp';
+import { followUpPositiveV1, followUpNeutralV1, followUpV2 } from './followUp';
 
 /**
  * Select appropriate prompt based on context
@@ -78,17 +78,31 @@ export function selectPrompt<TInput = any>(
 
   // Follow-up prompts (based on intent)
   if (selector.type === 'follow_up') {
-    if (selector.intent === 'interested') {
-      return followUpPositiveV1 as PromptDefinition<TInput>;
+    // Use specified version or default to v2 (respectful)
+    const version = selector.version || 'v2';
+
+    if (version === 'v2') {
+      // v2 handles both positive and neutral appropriately
+      return followUpV2 as PromptDefinition<TInput>;
     }
 
-    if (selector.intent === 'neutral') {
+    // v1 uses separate prompts for positive vs neutral
+    if (version === 'v1') {
+      if (selector.intent === 'interested') {
+        return followUpPositiveV1 as PromptDefinition<TInput>;
+      }
+
+      if (selector.intent === 'neutral') {
+        return followUpNeutralV1 as PromptDefinition<TInput>;
+      }
+
+      // Default to neutral for safety
+      console.warn(`Unknown intent for follow-up: ${selector.intent}. Defaulting to neutral.`);
       return followUpNeutralV1 as PromptDefinition<TInput>;
     }
 
-    // Default to neutral for safety
-    console.warn(`Unknown intent for follow-up: ${selector.intent}. Defaulting to neutral.`);
-    return followUpNeutralV1 as PromptDefinition<TInput>;
+    // Default to v2
+    return followUpV2 as PromptDefinition<TInput>;
   }
 
   // No matching prompt found
@@ -106,7 +120,7 @@ export function getAllPromptsForType(type: PromptSelector['type']): PromptDefini
   const prompts: Record<string, PromptDefinition[]> = {
     classify_reply: [classifyReplyV1, classifyReplyV2],
     generate_message: [generateInitialV1, generateInitialV2, generateFollowupV1],
-    follow_up: [followUpPositiveV1, followUpNeutralV1]
+    follow_up: [followUpPositiveV1, followUpNeutralV1, followUpV2]
   };
 
   return prompts[type] || [];
@@ -125,7 +139,8 @@ export function getPromptById(id: string): PromptDefinition | null {
     generateInitialV2,
     generateFollowupV1,
     followUpPositiveV1,
-    followUpNeutralV1
+    followUpNeutralV1,
+    followUpV2
   ];
 
   return allPrompts.find(p => p.id === id) || null;
@@ -149,7 +164,8 @@ export function listAllPrompts(): Array<{
     generateInitialV2,
     generateFollowupV1,
     followUpPositiveV1,
-    followUpNeutralV1
+    followUpNeutralV1,
+    followUpV2
   ];
 
   return allPrompts.map(p => ({
