@@ -1,5 +1,5 @@
-import OpenAI from 'openai';
-import { llmConfig } from '../config/llm.config';
+import Anthropic from '@anthropic-ai/sdk';
+import { claudeConfig } from '../config/claude.config';
 import { buildClassificationPrompt } from '../utils/promptTemplates';
 import {
   IntentClassification,
@@ -8,17 +8,22 @@ import {
   ClassificationResult
 } from '../types';
 
+/**
+ * LLM Service using Claude (Anthropic)
+ *
+ * ENFORCED: Claude-only for all classification and messaging
+ */
 export class LLMService {
-  private client: OpenAI;
+  private client: Anthropic;
 
   constructor(apiKey?: string) {
-    this.client = new OpenAI({
-      apiKey: apiKey || llmConfig.apiKey
+    this.client = new Anthropic({
+      apiKey: apiKey || claudeConfig.apiKey
     });
   }
 
   /**
-   * Classify a message using LLM
+   * Classify a message using Claude
    */
   async classifyIntent(request: ClassificationRequest): Promise<ClassificationResult> {
     const prompt = buildClassificationPrompt(
@@ -31,30 +36,33 @@ export class LLMService {
     );
 
     try {
-      const completion = await this.client.chat.completions.create({
-        model: llmConfig.model,
-        temperature: llmConfig.temperature,
-        max_tokens: llmConfig.maxTokens,
+      const message = await this.client.messages.create({
+        model: claudeConfig.classificationModel,
+        max_tokens: claudeConfig.classificationMaxTokens,
+        temperature: claudeConfig.classificationTemperature,
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert intent classifier for LinkedIn messages. Always respond with valid JSON.'
-          },
           {
             role: 'user',
             content: prompt
           }
-        ],
-        response_format: { type: 'json_object' }
+        ]
       });
 
-      const content = completion.choices[0]?.message?.content;
+      const content = message.content[0];
 
-      if (!content) {
-        throw new Error('No response from LLM');
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Claude');
       }
 
-      const parsed = JSON.parse(content);
+      // Extract JSON from response
+      const text = content.text;
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        throw new Error('No JSON found in Claude response');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
 
       // Validate against schema
       const classification = IntentClassificationSchema.parse({
@@ -68,12 +76,12 @@ export class LLMService {
         classification,
         reasoning: parsed.reasoning,
         timestamp: new Date(),
-        modelUsed: llmConfig.model
+        modelUsed: claudeConfig.classificationModel
       };
 
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`LLM classification failed: ${error.message}`);
+        throw new Error(`Claude classification failed: ${error.message}`);
       }
       throw error;
     }
@@ -90,19 +98,57 @@ export class LLMService {
   }
 
   /**
-   * Test connection to LLM service
+   * Test connection to Claude
    */
   async testConnection(): Promise<boolean> {
     try {
-      const response = await this.client.chat.completions.create({
-        model: llmConfig.model,
-        messages: [{ role: 'user', content: 'Test' }],
-        max_tokens: 5
+      const response = await this.client.messages.create({
+        model: claudeConfig.classificationModel,
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'Test' }]
       });
-      return !!response.choices[0]?.message;
+      return !!response.content[0];
     } catch (error) {
-      console.error('LLM connection test failed:', error);
+      console.error('Claude connection test failed:', error);
       return false;
+    }
+  }
+
+  /**
+   * Generate text using Claude
+   * Used by MessageGenerationService
+   */
+  async generate(systemPrompt: string, userPrompt: string, options?: {
+    temperature?: number;
+    maxTokens?: number;
+  }): Promise<string> {
+    try {
+      const message = await this.client.messages.create({
+        model: claudeConfig.model,
+        max_tokens: options?.maxTokens || claudeConfig.maxTokens,
+        temperature: options?.temperature ?? claudeConfig.temperature,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ]
+      });
+
+      const content = message.content[0];
+
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Claude');
+      }
+
+      return content.text.trim();
+
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Claude generation failed: ${error.message}`);
+      }
+      throw error;
     }
   }
 }

@@ -5,11 +5,12 @@ LLM-based intent classification system for LinkedIn message replies with automat
 ## Features
 
 ### Intent Classification
-- 🤖 **LLM-Powered Classification**: Uses OpenAI GPT-4 for accurate intent detection
+- 🤖 **Claude-Powered Classification**: Uses Anthropic Claude 3.5 Sonnet for accurate intent detection
 - 📊 **Structured Output**: Returns intent, sentiment, confidence, and next state
 - 🎯 **Confidence Validation**: Configurable threshold for classification reliability
 - 🔄 **State Management**: Automatic lead state advancement based on intent
 - 💾 **Persistent Storage**: Saves all classifications and conversation history
+- ⚡ **ENFORCED**: Claude-only for all classification and messaging
 
 ### Company Research
 - 🔍 **Automated Research**: Uses Perplexity AI for up-to-date company information
@@ -18,12 +19,13 @@ LLM-based intent classification system for LinkedIn message replies with automat
 - 📝 **Research Persistence**: Saves research to `lead.research_snapshot`
 - ✉️ **Personalized Messages**: Integrates research into message generation
 
-### Follow-up Generation (NEW) ⭐
-- 🔄 **Auto-Follow-ups**: Automatically generates follow-up messages after classification
+### Follow-up Generation ⭐
+- 🔄 **Auto-Follow-ups**: Automatically generates follow-up messages using Claude
 - 🎯 **Conditional Logic**: Only generates for `interested` and `neutral` intents
 - ❌ **Never for Negative**: Prevents spam by never following up on negative responses
 - 📝 **Conversation Persistence**: Adds follow-ups to `lead.conversationHistory`
 - 🔗 **Complete Loop**: Closes the conversational loop automatically
+- ⚡ **ENFORCED**: Claude-only for message generation
 
 ### General
 - 🚀 **REST API**: Easy integration with Express.js endpoints
@@ -67,8 +69,8 @@ npm install
 # Copy environment variables
 cp .env.example .env
 
-# Edit .env and add your OpenAI API key
-# OPENAI_API_KEY=your_api_key_here
+# Edit .env and add your Anthropic API key
+# ANTHROPIC_API_KEY=your_api_key_here
 ```
 
 ## Configuration
@@ -76,20 +78,28 @@ cp .env.example .env
 Edit `.env` file:
 
 ```env
-# OpenAI API Configuration
-OPENAI_API_KEY=your_openai_api_key_here
+# Claude API Configuration (REQUIRED - ENFORCED)
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Claude Model Configuration
+CLAUDE_MODEL=claude-3-5-sonnet-20241022
+CLAUDE_TEMPERATURE=0.7
+CLAUDE_MAX_TOKENS=4096
+
+# Claude Classification Settings
+CLAUDE_CLASSIFICATION_MODEL=claude-3-5-sonnet-20241022
+CLAUDE_CLASSIFICATION_TEMPERATURE=0.3
+CLAUDE_CLASSIFICATION_MAX_TOKENS=500
 
 # Perplexity API Configuration (for company research)
 PERPLEXITY_API_KEY=your_perplexity_api_key_here
 
 # Classification Configuration
 CONFIDENCE_THRESHOLD=0.7        # Minimum confidence to advance state (0.0-1.0)
-LLM_MODEL=gpt-4-turbo-preview   # OpenAI model to use
-LLM_TEMPERATURE=0.3              # Lower = more consistent (0.0-2.0)
 
 # Research Configuration
-RESEARCH_MODEL=sonar-pro           # Perplexity model
-RESEARCH_TIMEOUT=30000             # Research timeout in ms
+RESEARCH_MODEL=sonar-pro        # Perplexity model
+RESEARCH_TIMEOUT=30000          # Research timeout in ms
 
 # Server Configuration
 PORT=3000

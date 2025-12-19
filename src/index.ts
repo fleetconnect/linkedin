@@ -4,14 +4,14 @@ import { LLMService } from './services/LLMService';
 import { StorageService } from './services/StorageService';
 import { ClassificationController } from './controllers/ClassificationController';
 import { createRouter } from './api/routes';
-import { validateConfig } from './config/llm.config';
+import { validateClaudeConfig } from './config/claude.config';
 
 // Load environment variables
 dotenv.config();
 
 // Validate configuration
 try {
-  validateConfig();
+  validateClaudeConfig();
 } catch (error) {
   console.error('Configuration error:', error);
   process.exit(1);
@@ -26,14 +26,14 @@ async function startServer() {
 
   const llmService = new LLMService();
 
-  // Test LLM connection
-  console.log('Testing LLM connection...');
+  // Test Claude connection
+  console.log('Testing Claude connection...');
   const isConnected = await llmService.testConnection();
   if (!isConnected) {
-    console.error('Failed to connect to LLM service. Please check your API key.');
+    console.error('Failed to connect to Claude. Please check your ANTHROPIC_API_KEY.');
     process.exit(1);
   }
-  console.log('✓ LLM connection successful');
+  console.log('✓ Claude connection successful');
 
   // Initialize controller
   const controller = new ClassificationController(llmService, storageService);

@@ -1,26 +1,24 @@
-import OpenAI from 'openai';
-import { llmConfig } from '../config/llm.config';
+import { LLMService } from './LLMService';
 import { ResearchCompanyTool } from '../tools/researchCompany';
 import { Lead, Campaign, ResearchSnapshot } from '../types';
 
 /**
  * Message Generation Service
  *
- * Generates personalized LinkedIn messages using research snapshots
+ * Generates personalized LinkedIn messages using Claude
+ * ENFORCED: Claude-only for message generation
  */
 export class MessageGenerationService {
-  private client: OpenAI;
+  private llmService: LLMService;
   private researchTool: ResearchCompanyTool;
 
-  constructor(researchTool: ResearchCompanyTool, apiKey?: string) {
-    this.client = new OpenAI({
-      apiKey: apiKey || llmConfig.apiKey
-    });
+  constructor(researchTool: ResearchCompanyTool, llmService?: LLMService) {
+    this.llmService = llmService || new LLMService();
     this.researchTool = researchTool;
   }
 
   /**
-   * Generate a personalized message for a lead
+   * Generate a personalized message for a lead using Claude
    */
   async generateMessage(
     lead: Lead,
@@ -28,32 +26,16 @@ export class MessageGenerationService {
     messageType: 'initial' | 'follow-up' | 'reply',
     customPrompt?: string
   ): Promise<string> {
-    const prompt = this.buildMessagePrompt(lead, campaign, messageType, customPrompt);
+    const systemPrompt = this.getSystemPrompt(campaign);
+    const userPrompt = this.buildMessagePrompt(lead, campaign, messageType, customPrompt);
 
     try {
-      const completion = await this.client.chat.completions.create({
-        model: llmConfig.model,
+      const message = await this.llmService.generate(systemPrompt, userPrompt, {
         temperature: 0.7,
-        max_tokens: 300,
-        messages: [
-          {
-            role: 'system',
-            content: this.getSystemPrompt(campaign)
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
+        maxTokens: 300
       });
 
-      const message = completion.choices[0]?.message?.content;
-
-      if (!message) {
-        throw new Error('No message generated');
-      }
-
-      return message.trim();
+      return message;
 
     } catch (error) {
       if (error instanceof Error) {
@@ -165,7 +147,7 @@ Guidelines for reply:
   }
 
   /**
-   * Generate multiple message variations
+   * Generate multiple message variations using Claude
    */
   async generateVariations(
     lead: Lead,
