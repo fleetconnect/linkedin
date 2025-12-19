@@ -21,7 +21,7 @@ import {
 
 // Import all prompts
 import { classifyReplyV1, classifyReplyV2 } from './classifyReply';
-import { generateInitialV1, generateFollowupV1 } from './generateMessage';
+import { generateInitialV1, generateInitialV2, generateFollowupV1 } from './generateMessage';
 import { followUpPositiveV1, followUpNeutralV1 } from './followUp';
 
 /**
@@ -54,17 +54,26 @@ export function selectPrompt<TInput = any>(
   // Message generation prompts
   if (selector.type === 'generate_message') {
     if (selector.messageType === 'initial') {
-      // Future: Could add variant-specific prompts
-      // For now, variants are handled within the prompt via system message
-      return generateInitialV1 as PromptDefinition<TInput>;
+      // Use specified version or default to v2 (executive-grade)
+      const version = selector.version || 'v2';
+
+      if (version === 'v2') {
+        return generateInitialV2 as PromptDefinition<TInput>;
+      }
+
+      if (version === 'v1') {
+        return generateInitialV1 as PromptDefinition<TInput>;
+      }
+
+      return generateInitialV2 as PromptDefinition<TInput>;
     }
 
     if (selector.messageType === 'follow-up') {
       return generateFollowupV1 as PromptDefinition<TInput>;
     }
 
-    // Default to initial if messageType not specified
-    return generateInitialV1 as PromptDefinition<TInput>;
+    // Default to initial v2 if messageType not specified
+    return generateInitialV2 as PromptDefinition<TInput>;
   }
 
   // Follow-up prompts (based on intent)
@@ -96,7 +105,7 @@ export function selectPrompt<TInput = any>(
 export function getAllPromptsForType(type: PromptSelector['type']): PromptDefinition[] {
   const prompts: Record<string, PromptDefinition[]> = {
     classify_reply: [classifyReplyV1, classifyReplyV2],
-    generate_message: [generateInitialV1, generateFollowupV1],
+    generate_message: [generateInitialV1, generateInitialV2, generateFollowupV1],
     follow_up: [followUpPositiveV1, followUpNeutralV1]
   };
 
@@ -113,6 +122,7 @@ export function getPromptById(id: string): PromptDefinition | null {
     classifyReplyV1,
     classifyReplyV2,
     generateInitialV1,
+    generateInitialV2,
     generateFollowupV1,
     followUpPositiveV1,
     followUpNeutralV1
@@ -136,6 +146,7 @@ export function listAllPrompts(): Array<{
     classifyReplyV1,
     classifyReplyV2,
     generateInitialV1,
+    generateInitialV2,
     generateFollowupV1,
     followUpPositiveV1,
     followUpNeutralV1
