@@ -101,6 +101,151 @@ export function createRouter(
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // ==================== External Integration Routes (🔒 Execution Boundary) ====================
+
+  if (storageService) {
+    /**
+     * GET /api/leads
+     * Get leads by state (for external tools to poll READY_TO_SEND leads)
+     * Query params: ?state=READY_TO_SEND&campaignId=xxx
+     */
+    router.get('/leads', async (req: Request, res: Response) => {
+      try {
+        const { state, campaignId } = req.query;
+
+        let leads = await storageService.getLeads();
+
+        // Filter by state if provided
+        if (state && typeof state === 'string') {
+          leads = leads.filter(l => l.state === state);
+        }
+
+        // Filter by campaign if provided
+        if (campaignId && typeof campaignId === 'string') {
+          leads = leads.filter(l => l.campaignId === campaignId);
+        }
+
+        // Map to integration-friendly format
+        const integrationLeads = leads.map(lead => {
+          const lastMessage = lead.conversationHistory
+            .filter(m => m.sender === 'user')
+            .slice(-1)[0];
+
+          return {
+            id: lead.id,
+            name: lead.name,
+            company: lead.company,
+            state: lead.state,
+            nextMessage: lastMessage?.content,
+            messageId: lastMessage?.id,
+            variant: lastMessage?.variant,
+            campaignId: lead.campaignId,
+            updatedAt: lead.updatedAt
+          };
+        });
+
+        return res.json({
+          success: true,
+          count: integrationLeads.length,
+          data: integrationLeads
+        });
+
+      } catch (error) {
+        console.error('Get leads error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/leads/:leadId/state
+     * Update lead state (for external tools after sending)
+     * Body: { state: string, sentAt?: string, messageId?: string }
+     */
+    router.post('/leads/:leadId/state', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { state, sentAt, messageId } = req.body;
+
+        if (!state) {
+          return res.status(400).json({
+            error: 'Missing required field: state'
+          });
+        }
+
+        // Get lead
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        const previousState = lead.state;
+
+        // Update state
+        lead.state = state;
+        lead.updatedAt = new Date();
+
+        // If sentAt provided, update message timestamp
+        if (sentAt && messageId) {
+          const message = lead.conversationHistory.find(m => m.id === messageId);
+          if (message) {
+            message.timestamp = new Date(sentAt);
+          }
+        }
+
+        await storageService.saveLead(lead);
+
+        return res.json({
+          success: true,
+          data: {
+            leadId: lead.id,
+            previousState,
+            newState: state,
+            updatedAt: lead.updatedAt
+          }
+        });
+
+      } catch (error) {
+        console.error('Update lead state error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/leads/:leadId
+     * Get single lead details
+     */
+    router.get('/leads/:leadId', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+
+        const lead = await storageService.getLead(leadId);
+
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        return res.json({
+          success: true,
+          data: lead
+        });
+
+      } catch (error) {
+        console.error('Get lead error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
   // ==================== Follow-up Routes ====================
 
   if (followupTool) {

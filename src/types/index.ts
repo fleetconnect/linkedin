@@ -17,6 +17,7 @@ export enum Sentiment {
 export enum LeadState {
   NEW = 'NEW',
   QUALIFIED = 'QUALIFIED',
+  READY_TO_SEND = 'READY_TO_SEND',  // 🔒 EXECUTION BOUNDARY: Our system stops here. External tools (HeyReach/n8n) handle actual sending.
   CONTACTED = 'CONTACTED',
   REPLIED = 'REPLIED',
   INTERESTED = 'INTERESTED',

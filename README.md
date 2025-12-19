@@ -59,12 +59,41 @@ LLM-based intent classification system for LinkedIn message replies with automat
 ### Lead States
 
 ```
-NEW → QUALIFIED → CONTACTED → REPLIED → INTERESTED → BOOKED → CLOSED
-                                     ↓
-                                   LOST
+┌─────────────────────────────────────────────────────────────────┐
+│ OUR SYSTEM (Intelligence Layer)                                 │
+│                                                                  │
+│  NEW → QUALIFIED → Research → Message Gen → READY_TO_SEND       │
+│   ↓                                              ↑               │
+│  LOST ←──────────────────────────────────────────┘               │
+│                                                                  │
+└──────────────────────────────────┬──────────────────────────────┘
+                                   │
+                    🔒 EXECUTION BOUNDARY (We stop here)
+                                   │
+┌──────────────────────────────────┴──────────────────────────────┐
+│ EXTERNAL TOOLS (HeyReach, n8n, etc.)                            │
+│                                                                  │
+│  READY_TO_SEND → [Send via LinkedIn] → CONTACTED                │
+│                                            ↓                     │
+│  REPLIED → [We classify] → INTERESTED → READY_TO_SEND           │
+│                               ↓                                  │
+│                             BOOKED → CLOSED                      │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-**Note**: Research hook runs when lead reaches `QUALIFIED` state.
+**Key States:**
+- **QUALIFIED**: Lead is qualified, research hook runs here
+- **READY_TO_SEND**: 🔒 **Execution boundary** - our system stops here, external tools take over
+- **CONTACTED**: External tool confirmed message was sent to LinkedIn
+- **REPLIED**: Lead responded, we classify intent and may generate follow-up
+
+**Execution Boundary:**
+- Our system: Intelligence, decisions, state management, message generation
+- External tools: Actual sending, rate limits, LinkedIn compliance
+- Clean handoff at `READY_TO_SEND` state
+
+📖 **Full boundary docs**: See [docs/execution-boundaries.md](./docs/execution-boundaries.md)
 
 ## Installation
 
@@ -254,6 +283,91 @@ Get classification statistics for a lead.
 ### `GET /api/health`
 
 Health check endpoint.
+
+---
+
+### 🔒 External Integration Endpoints (Execution Boundary)
+
+These endpoints enable external tools (HeyReach, n8n) to integrate with our intelligence layer.
+
+#### `GET /api/leads`
+
+Get leads by state (for polling READY_TO_SEND leads).
+
+**Query params:**
+- `state` - Filter by lead state (e.g., `READY_TO_SEND`)
+- `campaignId` - Filter by campaign
+
+**Example:**
+```bash
+curl "http://localhost:3000/api/leads?state=READY_TO_SEND"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 2,
+  "data": [
+    {
+      "id": "lead-123",
+      "name": "John Doe",
+      "company": "Acme Corp",
+      "state": "READY_TO_SEND",
+      "nextMessage": "Hi John, I noticed...",
+      "messageId": "msg-456",
+      "variant": "A",
+      "campaignId": "campaign-1",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+#### `POST /api/leads/:leadId/state`
+
+Update lead state (for external tools after sending).
+
+**Request:**
+```json
+{
+  "state": "CONTACTED",
+  "sentAt": "2024-01-15T10:05:00Z",
+  "messageId": "msg-456"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "leadId": "lead-123",
+    "previousState": "READY_TO_SEND",
+    "newState": "CONTACTED",
+    "updatedAt": "2024-01-15T10:05:00Z"
+  }
+}
+```
+
+#### `GET /api/leads/:leadId`
+
+Get single lead details with full conversation history.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "lead-123",
+    "state": "READY_TO_SEND",
+    "conversationHistory": [...],
+    "research_snapshot": {...}
+  }
+}
+```
+
+---
 
 ## Controller Responsibilities
 
