@@ -102,6 +102,424 @@ export function createRouter(
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // ==================== Lead Management (CRUD) ====================
+
+  if (storageService) {
+    /**
+     * POST /api/leads
+     * Create a new lead
+     */
+    router.post('/leads', async (req: Request, res: Response) => {
+      try {
+        const { name, email, company, linkedinUrl, campaignId } = req.body;
+
+        if (!name) {
+          return res.status(400).json({
+            error: 'Missing required field: name'
+          });
+        }
+
+        const lead = await storageService.createLead({
+          id: uuidv4(),
+          name,
+          email,
+          company,
+          linkedinUrl,
+          campaignId
+        });
+
+        return res.json({
+          success: true,
+          data: lead
+        });
+
+      } catch (error) {
+        console.error('Create lead error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * PUT /api/leads/:leadId
+     * Update lead metadata (not state - use dedicated state endpoints)
+     */
+    router.put('/leads/:leadId', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { name, email, company, linkedinUrl, campaignId } = req.body;
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Update only provided fields
+        if (name) lead.name = name;
+        if (email !== undefined) lead.email = email;
+        if (company !== undefined) lead.company = company;
+        if (linkedinUrl !== undefined) lead.linkedinUrl = linkedinUrl;
+        if (campaignId !== undefined) lead.campaignId = campaignId;
+
+        const updated = await storageService.saveLead(lead, { skipStateValidation: true });
+
+        return res.json({
+          success: true,
+          data: updated
+        });
+
+      } catch (error) {
+        console.error('Update lead error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * DELETE /api/leads/:leadId
+     * Delete a lead (soft delete - mark as LOST)
+     */
+    router.delete('/leads/:leadId', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { hard } = req.query; // ?hard=true for permanent deletion
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        if (hard === 'true') {
+          // Hard delete - not implemented in StorageService yet
+          // Would need to implement in DatabaseService
+          return res.status(501).json({
+            error: 'Hard delete not yet implemented. Use soft delete (mark as LOST).'
+          });
+        } else {
+          // Soft delete - mark as LOST
+          await storageService.updateLeadState(leadId, 'LOST');
+        }
+
+        return res.json({
+          success: true,
+          message: 'Lead marked as LOST'
+        });
+
+      } catch (error) {
+        console.error('Delete lead error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/leads/import
+     * Bulk import leads from JSON array
+     */
+    router.post('/leads/import', async (req: Request, res: Response) => {
+      try {
+        const { leads, campaignId } = req.body;
+
+        if (!Array.isArray(leads) || leads.length === 0) {
+          return res.status(400).json({
+            error: 'leads must be a non-empty array'
+          });
+        }
+
+        const imported = [];
+        const errors = [];
+
+        for (const leadData of leads) {
+          try {
+            const lead = await storageService.createLead({
+              id: uuidv4(),
+              name: leadData.name,
+              email: leadData.email,
+              company: leadData.company,
+              linkedinUrl: leadData.linkedinUrl,
+              campaignId: leadData.campaignId || campaignId
+            });
+            imported.push(lead);
+          } catch (error) {
+            errors.push({
+              lead: leadData,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          }
+        }
+
+        return res.json({
+          success: true,
+          imported: imported.length,
+          failed: errors.length,
+          data: imported,
+          errors
+        });
+
+      } catch (error) {
+        console.error('Import leads error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== Campaign Management (CRUD) ====================
+
+  if (storageService) {
+    /**
+     * GET /api/campaigns
+     * Get all campaigns
+     */
+    router.get('/campaigns', async (req: Request, res: Response) => {
+      try {
+        const campaigns = await storageService.getCampaigns();
+
+        return res.json({
+          success: true,
+          count: campaigns.length,
+          data: campaigns
+        });
+
+      } catch (error) {
+        console.error('Get campaigns error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/campaigns
+     * Create a new campaign
+     */
+    router.post('/campaigns', async (req: Request, res: Response) => {
+      try {
+        const { name, description, messaging_rules } = req.body;
+
+        if (!name) {
+          return res.status(400).json({
+            error: 'Missing required field: name'
+          });
+        }
+
+        if (!messaging_rules) {
+          return res.status(400).json({
+            error: 'Missing required field: messaging_rules'
+          });
+        }
+
+        const campaign = await storageService.createCampaign({
+          id: uuidv4(),
+          name,
+          messaging_rules: {
+            personalization: messaging_rules.personalization ?? true,
+            maxMessagesPerDay: messaging_rules.maxMessagesPerDay,
+            researchRequired: messaging_rules.researchRequired,
+            toneOfVoice: messaging_rules.toneOfVoice || 'professional',
+            prompt_variant: messaging_rules.prompt_variant
+          }
+        });
+
+        return res.json({
+          success: true,
+          data: campaign
+        });
+
+      } catch (error) {
+        console.error('Create campaign error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/campaigns/:campaignId
+     * Get campaign details
+     */
+    router.get('/campaigns/:campaignId', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+
+        const campaign = await storageService.getCampaign(campaignId);
+        if (!campaign) {
+          return res.status(404).json({
+            error: `Campaign not found: ${campaignId}`
+          });
+        }
+
+        return res.json({
+          success: true,
+          data: campaign
+        });
+
+      } catch (error) {
+        console.error('Get campaign error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * PUT /api/campaigns/:campaignId
+     * Update campaign
+     */
+    router.put('/campaigns/:campaignId', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+        const { name, description, active, messaging_rules } = req.body;
+
+        const campaign = await storageService.getCampaign(campaignId);
+        if (!campaign) {
+          return res.status(404).json({
+            error: `Campaign not found: ${campaignId}`
+          });
+        }
+
+        // Update provided fields
+        if (name) campaign.name = name;
+        if (description !== undefined) campaign.description = description;
+        if (active !== undefined) campaign.active = active;
+        if (messaging_rules) campaign.messaging_rules = messaging_rules;
+
+        const updated = await storageService.saveCampaign(campaign);
+
+        return res.json({
+          success: true,
+          data: updated
+        });
+
+      } catch (error) {
+        console.error('Update campaign error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * DELETE /api/campaigns/:campaignId
+     * Delete campaign (deactivate)
+     */
+    router.delete('/campaigns/:campaignId', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+
+        const campaign = await storageService.getCampaign(campaignId);
+        if (!campaign) {
+          return res.status(404).json({
+            error: `Campaign not found: ${campaignId}`
+          });
+        }
+
+        // Soft delete - deactivate campaign
+        campaign.active = false;
+        await storageService.saveCampaign(campaign);
+
+        return res.json({
+          success: true,
+          message: 'Campaign deactivated'
+        });
+
+      } catch (error) {
+        console.error('Delete campaign error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/campaigns/:campaignId/leads
+     * Get all leads for a campaign
+     */
+    router.get('/campaigns/:campaignId/leads', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+        const { state } = req.query;
+
+        let leads = await storageService.getLeadsByCampaign(campaignId);
+
+        // Filter by state if provided
+        if (state && typeof state === 'string') {
+          leads = leads.filter(l => l.state === state);
+        }
+
+        return res.json({
+          success: true,
+          count: leads.length,
+          data: leads
+        });
+
+      } catch (error) {
+        console.error('Get campaign leads error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== Message Generation ====================
+
+  if (storageService) {
+    /**
+     * POST /api/leads/:leadId/generate-initial
+     * Generate initial outreach message for a lead
+     */
+    router.post('/leads/:leadId/generate-initial', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { campaignId, customPrompt } = req.body;
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Get campaign (use lead's campaign or provided)
+        const cId = campaignId || lead.campaignId;
+        if (!cId) {
+          return res.status(400).json({
+            error: 'No campaign specified. Provide campaignId or assign lead to a campaign.'
+          });
+        }
+
+        const campaign = await storageService.getCampaign(cId);
+        if (!campaign) {
+          return res.status(404).json({
+            error: `Campaign not found: ${cId}`
+          });
+        }
+
+        // Generate message using MessageGenerationService
+        // Note: This requires MessageGenerationService to be available
+        // For now, return a placeholder - you'll wire this up
+        return res.status(501).json({
+          error: 'Message generation not yet wired to API. Implement MessageGenerationService integration.'
+        });
+
+      } catch (error) {
+        console.error('Generate initial message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
   // ==================== External Integration Routes (🔒 Execution Boundary) ====================
 
   if (storageService) {
