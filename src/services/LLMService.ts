@@ -9,6 +9,7 @@ import {
   ClassificationResult
 } from '../types';
 import observability from './ObservabilityService';
+import { retryWithBackoff } from '../utils/retry';
 
 /**
  * LLM Service using Claude (Anthropic)
@@ -26,6 +27,7 @@ export class LLMService {
 
   /**
    * Classify a message using Claude with prompt registry
+   * Includes retry logic for transient failures
    */
   async classifyIntent(request: ClassificationRequest): Promise<ClassificationResult> {
     const startTime = Date.now();
@@ -51,45 +53,70 @@ export class LLMService {
     // Get user prompt
     const userPrompt = prompt.user(input);
 
-    try {
-      const message = await this.client.messages.create({
-        model: prompt.model,
-        max_tokens: prompt.maxTokens,
-        temperature: prompt.temperature,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ]
-      });
+    // Wrap Claude call in retry logic
+    const retryResult = await retryWithBackoff(
+      async () => {
+        const message = await this.client.messages.create({
+          model: prompt.model,
+          max_tokens: prompt.maxTokens,
+          temperature: prompt.temperature,
+          system: systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content: userPrompt
+            }
+          ]
+        });
 
-      const latency = Date.now() - startTime;
-      const content = message.content[0];
+        const content = message.content[0];
 
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Claude');
+        if (content.type !== 'text') {
+          throw new Error('Unexpected response type from Claude');
+        }
+
+        // Extract JSON from response
+        const text = content.text;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+        if (!jsonMatch) {
+          throw new Error('No JSON found in Claude response (malformed output)');
+        }
+
+        let parsed;
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          throw new Error(`Invalid JSON in Claude response: ${e instanceof Error ? e.message : 'parse error'}`);
+        }
+
+        // Validate against schema
+        const classification = IntentClassificationSchema.parse({
+          intent: parsed.intent,
+          sentiment: parsed.sentiment,
+          confidence: parsed.confidence,
+          next_state: parsed.next_state
+        });
+
+        return {
+          classification,
+          reasoning: parsed.reasoning,
+          tokens: message.usage.input_tokens + message.usage.output_tokens
+        };
+      },
+      {
+        maxAttempts: 3,
+        initialDelayMs: 1000,
+        maxDelayMs: 5000,
+        onRetry: (attempt, error) => {
+          console.warn(`🔄 Classification retry ${attempt}/3: ${error.message}`);
+        }
       }
+    );
 
-      // Extract JSON from response
-      const text = content.text;
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const latency = Date.now() - startTime;
 
-      if (!jsonMatch) {
-        throw new Error('No JSON found in Claude response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      // Validate against schema
-      const classification = IntentClassificationSchema.parse({
-        intent: parsed.intent,
-        sentiment: parsed.sentiment,
-        confidence: parsed.confidence,
-        next_state: parsed.next_state
-      });
-
+    if (retryResult.success && retryResult.result) {
       // Log successful LLM call
       observability.logLLMCall({
         operation: 'classify',
@@ -99,21 +126,18 @@ export class LLMService {
         temperature: prompt.temperature,
         success: true,
         latency_ms: latency,
-        tokens_used: message.usage.input_tokens + message.usage.output_tokens,
+        tokens_used: retryResult.result.tokens,
         leadId: request.leadInfo?.id
       });
 
       return {
-        classification,
-        reasoning: parsed.reasoning,
+        classification: retryResult.result.classification,
+        reasoning: retryResult.result.reasoning,
         timestamp: new Date(),
         modelUsed: prompt.model
       };
-
-    } catch (error) {
-      const latency = Date.now() - startTime;
-
-      // Log failed LLM call
+    } else {
+      // All retries failed - log and throw
       observability.logLLMCall({
         operation: 'classify',
         promptId: prompt.id,
@@ -122,14 +146,13 @@ export class LLMService {
         temperature: prompt.temperature,
         success: false,
         latency_ms: latency,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: retryResult.error?.message || 'Unknown error',
         leadId: request.leadInfo?.id
       });
 
-      if (error instanceof Error) {
-        throw new Error(`Claude classification failed: ${error.message}`);
-      }
-      throw error;
+      throw new Error(
+        `Claude classification failed after ${retryResult.attempts} attempts: ${retryResult.error?.message}`
+      );
     }
   }
 
@@ -163,6 +186,7 @@ export class LLMService {
   /**
    * Generate text using Claude
    * Used by MessageGenerationService
+   * Includes retry logic for transient failures
    */
   async generate(systemPrompt: string, userPrompt: string, options?: {
     temperature?: number;
@@ -174,46 +198,62 @@ export class LLMService {
     const model = claudeConfig.model;
     const temperature = options?.temperature ?? claudeConfig.temperature;
 
-    try {
-      const message = await this.client.messages.create({
-        model,
-        max_tokens: options?.maxTokens || claudeConfig.maxTokens,
-        temperature,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ]
-      });
+    // Wrap Claude call in retry logic
+    const retryResult = await retryWithBackoff(
+      async () => {
+        const message = await this.client.messages.create({
+          model,
+          max_tokens: options?.maxTokens || claudeConfig.maxTokens,
+          temperature,
+          system: systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content: userPrompt
+            }
+          ]
+        });
 
-      const latency = Date.now() - startTime;
-      const content = message.content[0];
+        const content = message.content[0];
 
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Claude');
+        if (content.type !== 'text') {
+          throw new Error('Unexpected response type from Claude');
+        }
+
+        return {
+          text: content.text.trim(),
+          tokens: message.usage.input_tokens + message.usage.output_tokens
+        };
+      },
+      {
+        maxAttempts: 3,
+        initialDelayMs: 1000,
+        maxDelayMs: 5000,
+        onRetry: (attempt, error) => {
+          console.warn(`🔄 Message generation retry ${attempt}/3: ${error.message}`);
+        }
       }
+    );
 
+    const latency = Date.now() - startTime;
+
+    if (retryResult.success && retryResult.result) {
       // Log successful LLM call
       observability.logLLMCall({
         operation: options?.operation || 'generate_message',
-        promptId: 'generate_message_generic',  // MessageGenerationService uses custom prompts
+        promptId: 'generate_message_generic',
         promptVersion: 'v1',
         model,
         temperature,
         success: true,
         latency_ms: latency,
-        tokens_used: message.usage.input_tokens + message.usage.output_tokens,
+        tokens_used: retryResult.result.tokens,
         leadId: options?.leadId
       });
 
-      return content.text.trim();
-
-    } catch (error) {
-      const latency = Date.now() - startTime;
-
-      // Log failed LLM call
+      return retryResult.result.text;
+    } else {
+      // All retries failed - log and throw
       observability.logLLMCall({
         operation: options?.operation || 'generate_message',
         promptId: 'generate_message_generic',
@@ -222,14 +262,13 @@ export class LLMService {
         temperature,
         success: false,
         latency_ms: latency,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: retryResult.error?.message || 'Unknown error',
         leadId: options?.leadId
       });
 
-      if (error instanceof Error) {
-        throw new Error(`Claude generation failed: ${error.message}`);
-      }
-      throw error;
+      throw new Error(
+        `Claude generation failed after ${retryResult.attempts} attempts: ${retryResult.error?.message}`
+      );
     }
   }
 }

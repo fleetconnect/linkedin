@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { perplexityConfig } from '../config/perplexity.config';
 import { ResearchSnapshot } from '../types';
+import { retryWithBackoff } from '../utils/retry';
 
 /**
  * Perplexity API Service for company research
@@ -26,6 +27,7 @@ export class PerplexityService {
 
   /**
    * Research a company using Perplexity's online models
+   * Includes retry logic for transient failures
    */
   async researchCompany(
     companyName: string,
@@ -33,42 +35,55 @@ export class PerplexityService {
   ): Promise<ResearchSnapshot> {
     const prompt = this.buildResearchPrompt(companyName, additionalContext);
 
-    try {
-      const completion = await this.client.chat.completions.create({
-        model: perplexityConfig.model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a business research assistant. Provide accurate, up-to-date information about companies in a structured JSON format. Focus on actionable insights for sales and outreach.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 2000
-      });
+    // Wrap Perplexity call in retry logic
+    const retryResult = await retryWithBackoff(
+      async () => {
+        const completion = await this.client.chat.completions.create({
+          model: perplexityConfig.model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a business research assistant. Provide accurate, up-to-date information about companies in a structured JSON format. Focus on actionable insights for sales and outreach.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.2,
+          max_tokens: 2000
+        });
 
-      const content = completion.choices[0]?.message?.content;
+        const content = completion.choices[0]?.message?.content;
 
-      if (!content) {
-        throw new Error('No response from Perplexity');
+        if (!content) {
+          throw new Error('No response from Perplexity');
+        }
+
+        // Parse the response
+        const researchData = this.parseResearchResponse(content, companyName);
+
+        return {
+          ...researchData,
+          researched_at: new Date()
+        };
+      },
+      {
+        maxAttempts: 3,
+        initialDelayMs: 2000, // Longer initial delay for research
+        maxDelayMs: 10000,
+        onRetry: (attempt, error) => {
+          console.warn(`🔄 Research retry ${attempt}/3 for ${companyName}: ${error.message}`);
+        }
       }
+    );
 
-      // Parse the response
-      const researchData = this.parseResearchResponse(content, companyName);
-
-      return {
-        ...researchData,
-        researched_at: new Date()
-      };
-
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Perplexity research failed: ${error.message}`);
-      }
-      throw error;
+    if (retryResult.success && retryResult.result) {
+      return retryResult.result;
+    } else {
+      throw new Error(
+        `Perplexity research failed after ${retryResult.attempts} attempts: ${retryResult.error?.message}`
+      );
     }
   }
 
