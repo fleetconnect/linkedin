@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { LLMService } from './services/LLMService';
-import { StorageService } from './services/StorageService';
+import { createStorageService } from './services/StorageFactory';
 import { ClassificationController } from './controllers/ClassificationController';
 import { createRouter } from './api/routes';
 import { validateClaudeConfig } from './config/claude.config';
@@ -20,9 +20,8 @@ try {
 const PORT = process.env.PORT || 3000;
 
 async function startServer() {
-  // Initialize services
-  const storageService = new StorageService();
-  await storageService.initialize();
+  // Initialize storage service (file-based or PostgreSQL based on STORAGE_TYPE env var)
+  const storageService = await createStorageService();
 
   const llmService = new LLMService();
 
@@ -61,7 +60,6 @@ startServer().catch(error => {
 
 export {
   LLMService,
-  StorageService,
   ClassificationController,
   PerplexityService,
   ResearchCompanyTool,
@@ -70,6 +68,9 @@ export {
   MessageGenerationService,
   MessagingController
 };
+
+// Re-export storage services
+export { StorageService, DatabaseService, createStorageService } from './services/StorageFactory';
 
 // Re-export from services
 export { PerplexityService } from './services/PerplexityService';

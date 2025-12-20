@@ -1,5 +1,36 @@
 # Database Migration: JSON → PostgreSQL
 
+## Quick Start
+
+The application now supports both file-based (JSON) and PostgreSQL storage.
+
+**To use file-based storage (default):**
+```bash
+# .env
+STORAGE_TYPE=file
+```
+
+**To use PostgreSQL storage:**
+```bash
+# .env
+STORAGE_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=linkedin_outreach
+DB_USER=postgres
+DB_PASSWORD=your_password
+```
+
+**Migration steps:**
+1. Install dependencies: `npm install`
+2. Set up PostgreSQL database
+3. Run schema migration: `npm run db:migrate`
+4. Migrate data from JSON: `npm run db:migrate-data`
+5. Update `.env` to set `STORAGE_TYPE=postgres`
+6. Restart application
+
+---
+
 ## Why Migrate
 
 File-based JSON storage is fine for architecture.
