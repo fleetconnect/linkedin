@@ -7,6 +7,7 @@ import {
   ResearchResult,
   LeadState
 } from '../types';
+import observability from '../services/ObservabilityService';
 
 /**
  * Research Company Tool
@@ -30,6 +31,7 @@ export class ResearchCompanyTool {
    * Execute company research for a lead
    */
   async execute(request: ResearchRequest): Promise<ResearchResult> {
+    const startTime = Date.now();
     const { leadId, companyName, additionalContext } = request;
 
     try {
@@ -43,7 +45,29 @@ export class ResearchCompanyTool {
         };
       }
 
-      // Perform research
+      // Check if we have cached research
+      const cacheHit = !!(lead.research_snapshot && this.isRecentResearch(lead.research_snapshot));
+
+      if (cacheHit) {
+        // Log cache hit
+        observability.logResearch({
+          leadId,
+          companyName,
+          cacheHit: true,
+          success: true,
+          latency_ms: Date.now() - startTime,
+          fieldsCollected: this.countResearchFields(lead.research_snapshot!)
+        });
+
+        console.log(`💾 Using cached research for ${companyName}`);
+
+        return {
+          success: true,
+          snapshot: lead.research_snapshot!
+        };
+      }
+
+      // Perform research (cache miss)
       console.log(`🔍 Researching company: ${companyName} for lead ${lead.name}`);
 
       const snapshot = await this.perplexityService.researchCompany(
@@ -53,6 +77,18 @@ export class ResearchCompanyTool {
 
       // Persist research snapshot to lead
       await this.storageService.saveResearchSnapshot(leadId, snapshot);
+
+      const latency = Date.now() - startTime;
+
+      // Log cache miss (successful research)
+      observability.logResearch({
+        leadId,
+        companyName,
+        cacheHit: false,
+        success: true,
+        latency_ms: latency,
+        fieldsCollected: this.countResearchFields(snapshot)
+      });
 
       console.log(`✅ Research completed and saved for ${companyName}`);
       console.log(`   - Industry: ${snapshot.industry}`);
@@ -65,6 +101,18 @@ export class ResearchCompanyTool {
       };
 
     } catch (error) {
+      const latency = Date.now() - startTime;
+
+      // Log research failure
+      observability.logResearch({
+        leadId,
+        companyName,
+        cacheHit: false,
+        success: false,
+        latency_ms: latency,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
       console.error('Research failed:', error);
       return {
         success: false,
@@ -72,6 +120,31 @@ export class ResearchCompanyTool {
         snapshot: this.createEmptySnapshot()
       };
     }
+  }
+
+  /**
+   * Check if research is recent (within 7 days)
+   */
+  private isRecentResearch(snapshot: ResearchSnapshot): boolean {
+    const researchAge = Date.now() - new Date(snapshot.researched_at).getTime();
+    const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+    return researchAge < sevenDaysInMs;
+  }
+
+  /**
+   * Count non-empty research fields
+   */
+  private countResearchFields(snapshot: ResearchSnapshot): number {
+    let count = 0;
+    if (snapshot.companyDescription) count++;
+    if (snapshot.industry) count++;
+    if (snapshot.recentNews && snapshot.recentNews.length > 0) count++;
+    if (snapshot.keyProducts && snapshot.keyProducts.length > 0) count++;
+    if (snapshot.challenges && snapshot.challenges.length > 0) count++;
+    if (snapshot.opportunities && snapshot.opportunities.length > 0) count++;
+    if (snapshot.fundingInfo) count++;
+    if (snapshot.employeeCount) count++;
+    return count;
   }
 
   /**

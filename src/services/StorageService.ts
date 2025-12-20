@@ -3,6 +3,7 @@ import path from 'path';
 import { Lead, Message, IntentClassification, LeadState, Campaign, ResearchSnapshot } from '../types';
 import { validateTransition, assertValidTransition } from '../utils/stateTransitionGuard';
 import { isDuplicateMessage } from '../utils/idempotencyGuard';
+import observability from './ObservabilityService';
 
 /**
  * Simple file-based storage service for leads and classifications
@@ -81,6 +82,7 @@ export class StorageService {
   async saveLead(lead: Lead, options?: {
     skipStateValidation?: boolean;
   }): Promise<Lead> {
+    const startTime = Date.now();
     const leads = await this.getLeads();
     const existingIndex = leads.findIndex(l => l.id === lead.id);
 
@@ -92,6 +94,17 @@ export class StorageService {
         const validation = validateTransition(existingLead.state, lead.state);
 
         if (!validation.valid) {
+          // Log failed transition
+          observability.logStateTransition({
+            leadId: lead.id,
+            leadName: lead.name,
+            fromState: existingLead.state,
+            toState: lead.state,
+            success: false,
+            validationError: validation.reason,
+            duration_ms: Date.now() - startTime
+          });
+
           throw new Error(
             `Invalid state transition: ${existingLead.state} → ${lead.state}. ${validation.reason}`
           );
@@ -100,6 +113,16 @@ export class StorageService {
         if (validation.warning) {
           console.warn(`⚠️  ${validation.warning}`);
         }
+
+        // Log successful transition
+        observability.logStateTransition({
+          leadId: lead.id,
+          leadName: lead.name,
+          fromState: existingLead.state,
+          toState: lead.state,
+          success: true,
+          duration_ms: Date.now() - startTime
+        });
       }
     }
 
@@ -166,6 +189,15 @@ export class StorageService {
         message.sender,
         { timeWindowMs: options?.duplicateWindowMs }
       );
+
+      // Log idempotency check
+      observability.logIdempotency({
+        leadId: lead.id,
+        operation: 'message',
+        blocked: duplicateCheck.isDuplicate,
+        reason: duplicateCheck.reason,
+        timeWindow_ms: options?.duplicateWindowMs
+      });
 
       if (duplicateCheck.isDuplicate) {
         console.warn(

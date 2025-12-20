@@ -14,6 +14,7 @@ import {
 import { llmConfig } from '../config/llm.config';
 import { validateTransition } from '../utils/stateTransitionGuard';
 import { isDuplicateClassification } from '../utils/idempotencyGuard';
+import observability from '../services/ObservabilityService';
 
 /**
  * Controller responsible for:
@@ -75,6 +76,15 @@ export class ClassificationController {
     // Idempotency check: prevent duplicate classifications
     if (!options?.skipIdempotencyCheck) {
       const duplicateCheck = isDuplicateClassification(lead, messageContent);
+
+      // Log idempotency check
+      observability.logIdempotency({
+        leadId: lead.id,
+        operation: 'classification',
+        blocked: duplicateCheck.isDuplicate,
+        reason: duplicateCheck.reason
+      });
+
       if (duplicateCheck.isDuplicate) {
         console.warn(`⚠️  ${duplicateCheck.reason}. Returning existing classification.`);
         return {

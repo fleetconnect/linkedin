@@ -8,6 +8,7 @@ import {
   ClassificationRequest,
   ClassificationResult
 } from '../types';
+import observability from './ObservabilityService';
 
 /**
  * LLM Service using Claude (Anthropic)
@@ -27,6 +28,8 @@ export class LLMService {
    * Classify a message using Claude with prompt registry
    */
   async classifyIntent(request: ClassificationRequest): Promise<ClassificationResult> {
+    const startTime = Date.now();
+
     // Select prompt from registry (defaults to v2 - conservative)
     const prompt = selectPrompt<ClassifyReplyInput>({
       type: 'classify_reply'
@@ -62,6 +65,7 @@ export class LLMService {
         ]
       });
 
+      const latency = Date.now() - startTime;
       const content = message.content[0];
 
       if (content.type !== 'text') {
@@ -86,6 +90,19 @@ export class LLMService {
         next_state: parsed.next_state
       });
 
+      // Log successful LLM call
+      observability.logLLMCall({
+        operation: 'classify',
+        promptId: prompt.id,
+        promptVersion: prompt.version,
+        model: prompt.model,
+        temperature: prompt.temperature,
+        success: true,
+        latency_ms: latency,
+        tokens_used: message.usage.input_tokens + message.usage.output_tokens,
+        leadId: request.leadInfo?.id
+      });
+
       return {
         classification,
         reasoning: parsed.reasoning,
@@ -94,6 +111,21 @@ export class LLMService {
       };
 
     } catch (error) {
+      const latency = Date.now() - startTime;
+
+      // Log failed LLM call
+      observability.logLLMCall({
+        operation: 'classify',
+        promptId: prompt.id,
+        promptVersion: prompt.version,
+        model: prompt.model,
+        temperature: prompt.temperature,
+        success: false,
+        latency_ms: latency,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        leadId: request.leadInfo?.id
+      });
+
       if (error instanceof Error) {
         throw new Error(`Claude classification failed: ${error.message}`);
       }
@@ -135,12 +167,18 @@ export class LLMService {
   async generate(systemPrompt: string, userPrompt: string, options?: {
     temperature?: number;
     maxTokens?: number;
+    operation?: 'generate_message' | 'generate_followup';
+    leadId?: string;
   }): Promise<string> {
+    const startTime = Date.now();
+    const model = claudeConfig.model;
+    const temperature = options?.temperature ?? claudeConfig.temperature;
+
     try {
       const message = await this.client.messages.create({
-        model: claudeConfig.model,
+        model,
         max_tokens: options?.maxTokens || claudeConfig.maxTokens,
-        temperature: options?.temperature ?? claudeConfig.temperature,
+        temperature,
         system: systemPrompt,
         messages: [
           {
@@ -150,15 +188,44 @@ export class LLMService {
         ]
       });
 
+      const latency = Date.now() - startTime;
       const content = message.content[0];
 
       if (content.type !== 'text') {
         throw new Error('Unexpected response type from Claude');
       }
 
+      // Log successful LLM call
+      observability.logLLMCall({
+        operation: options?.operation || 'generate_message',
+        promptId: 'generate_message_generic',  // MessageGenerationService uses custom prompts
+        promptVersion: 'v1',
+        model,
+        temperature,
+        success: true,
+        latency_ms: latency,
+        tokens_used: message.usage.input_tokens + message.usage.output_tokens,
+        leadId: options?.leadId
+      });
+
       return content.text.trim();
 
     } catch (error) {
+      const latency = Date.now() - startTime;
+
+      // Log failed LLM call
+      observability.logLLMCall({
+        operation: options?.operation || 'generate_message',
+        promptId: 'generate_message_generic',
+        promptVersion: 'v1',
+        model,
+        temperature,
+        success: false,
+        latency_ms: latency,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        leadId: options?.leadId
+      });
+
       if (error instanceof Error) {
         throw new Error(`Claude generation failed: ${error.message}`);
       }

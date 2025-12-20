@@ -4,6 +4,7 @@ import { DraftFollowupTool } from '../tools/draftFollowup';
 import { StorageService } from '../services/StorageService';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { v4 as uuidv4 } from 'uuid';
+import observability from '../services/ObservabilityService';
 
 export function createRouter(
   controller: ClassificationController,
@@ -475,6 +476,80 @@ export function createRouter(
       }
     });
   }
+
+  // ==================== Observability Routes ====================
+
+  /**
+   * GET /api/observability/stats
+   * Get observability statistics
+   * Query params: ?since=ISO8601_timestamp
+   */
+  router.get('/observability/stats', (req: Request, res: Response) => {
+    try {
+      const { since } = req.query;
+      const sinceDate = since && typeof since === 'string' ? new Date(since) : undefined;
+
+      const stats = observability.getStats(sinceDate);
+
+      return res.json({
+        success: true,
+        data: stats
+      });
+
+    } catch (error) {
+      console.error('Observability stats error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * GET /api/observability/logs
+   * Query observability logs
+   * Query params: ?category=STATE_TRANSITION&level=ERROR&leadId=xxx&limit=100
+   */
+  router.get('/observability/logs', (req: Request, res: Response) => {
+    try {
+      const { category, level, leadId, limit, since } = req.query;
+
+      const filters: any = {};
+
+      if (category && typeof category === 'string') {
+        filters.category = category;
+      }
+
+      if (level && typeof level === 'string') {
+        filters.level = level;
+      }
+
+      if (leadId && typeof leadId === 'string') {
+        filters.leadId = leadId;
+      }
+
+      if (limit && typeof limit === 'string') {
+        filters.limit = parseInt(limit, 10);
+      }
+
+      if (since && typeof since === 'string') {
+        filters.since = new Date(since);
+      }
+
+      const logs = observability.query(filters);
+
+      return res.json({
+        success: true,
+        count: logs.length,
+        data: logs
+      });
+
+    } catch (error) {
+      console.error('Observability logs error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
 
   return router;
 }
