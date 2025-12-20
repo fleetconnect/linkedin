@@ -29,10 +29,11 @@ async function startServer() {
   console.log('Testing Claude connection...');
   const isConnected = await llmService.testConnection();
   if (!isConnected) {
-    console.error('Failed to connect to Claude. Please check your ANTHROPIC_API_KEY.');
-    process.exit(1);
+    console.warn('⚠️  Warning: Failed to connect to Claude. Please check your ANTHROPIC_API_KEY.');
+    console.warn('⚠️  Server will start but classification features will not work.');
+  } else {
+    console.log('✓ Claude connection successful');
   }
-  console.log('✓ Claude connection successful');
 
   // Initialize controller
   const controller = new ClassificationController(llmService, storageService);
@@ -58,30 +59,19 @@ startServer().catch(error => {
   process.exit(1);
 });
 
-export {
-  LLMService,
-  ClassificationController,
-  PerplexityService,
-  ResearchCompanyTool,
-  DraftFollowupTool,
-  PreMessageHook,
-  MessageGenerationService,
-  MessagingController
-};
-
-// Re-export storage services
-export { StorageService, DatabaseService, createStorageService } from './services/StorageFactory';
-
-// Re-export from services
+// Re-export core services
+export { LLMService } from './services/LLMService';
 export { PerplexityService } from './services/PerplexityService';
 export { MessageGenerationService } from './services/MessageGenerationService';
+export { StorageService, DatabaseService, createStorageService } from './services/StorageFactory';
 
-// Re-export from tools
+// Re-export controllers
+export { ClassificationController } from './controllers/ClassificationController';
+export { MessagingController } from './controllers/MessagingController';
+
+// Re-export tools
 export { ResearchCompanyTool } from './tools/researchCompany';
 export { DraftFollowupTool } from './tools/draftFollowup';
 
-// Re-export from hooks
+// Re-export hooks
 export { PreMessageHook } from './hooks/PreMessageHook';
-
-// Re-export from controllers
-export { MessagingController } from './controllers/MessagingController';

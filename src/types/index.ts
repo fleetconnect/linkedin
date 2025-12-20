@@ -83,6 +83,7 @@ export interface ClassificationRequest {
   messageContent: string;
   conversationContext?: string[];
   leadInfo?: {
+    id?: string;
     name: string;
     previousState: LeadState;
   };
@@ -115,6 +116,7 @@ export interface MessagingRules {
 export interface Campaign {
   id: string;
   name: string;
+  description?: string;
   messaging_rules: MessagingRules;
   active: boolean;
   createdAt: Date;

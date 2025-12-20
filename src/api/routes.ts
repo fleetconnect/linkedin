@@ -1,15 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { ClassificationController } from '../controllers/ClassificationController';
 import { DraftFollowupTool } from '../tools/draftFollowup';
-import { StorageService } from '../services/StorageService';
+import { IStorageService } from '../services/StorageFactory';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { v4 as uuidv4 } from 'uuid';
 import observability from '../services/ObservabilityService';
+import { LeadState } from '../types';
 
 export function createRouter(
   controller: ClassificationController,
   followupTool?: DraftFollowupTool,
-  storageService?: StorageService
+  storageService?: IStorageService
 ): Router {
   const router = Router();
 
@@ -203,7 +204,7 @@ export function createRouter(
           });
         } else {
           // Soft delete - mark as LOST
-          await storageService.updateLeadState(leadId, 'LOST');
+          await storageService.updateLeadState(leadId, LeadState.LOST);
         }
 
         return res.json({
@@ -547,7 +548,7 @@ export function createRouter(
         // Map to integration-friendly format
         const integrationLeads = leads.map(lead => {
           const lastMessage = lead.conversationHistory
-            .filter(m => m.sender === 'user')
+            .filter((m: any) => m.sender === 'user')
             .slice(-1)[0];
 
           return {
@@ -609,7 +610,7 @@ export function createRouter(
 
         // If sentAt provided, update message timestamp
         if (sentAt && messageId) {
-          const message = lead.conversationHistory.find(m => m.id === messageId);
+          const message = lead.conversationHistory.find((m: any) => m.id === messageId);
           if (message) {
             message.timestamp = new Date(sentAt);
           }

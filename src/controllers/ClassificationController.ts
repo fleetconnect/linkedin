@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { LLMService } from '../services/LLMService';
-import { StorageService } from '../services/StorageService';
+import { IStorageService } from '../services/StorageFactory';
 import { DraftFollowupTool } from '../tools/draftFollowup';
 import {
   IntentClassification,
@@ -25,13 +25,13 @@ import observability from '../services/ObservabilityService';
  */
 export class ClassificationController {
   private llmService: LLMService;
-  private storageService: StorageService;
+  private storageService: IStorageService;
   private followupTool?: DraftFollowupTool;
   private config: ControllerConfig & { autoGenerateFollowups?: boolean };
 
   constructor(
     llmService: LLMService,
-    storageService: StorageService,
+    storageService: IStorageService,
     followupTool?: DraftFollowupTool,
     config?: Partial<ControllerConfig & { autoGenerateFollowups?: boolean }>
   ) {
@@ -101,7 +101,7 @@ export class ClassificationController {
     // Build conversation context
     const conversationContext = lead.conversationHistory
       .slice(-5) // Last 5 messages for context
-      .map(msg => `[${msg.sender}]: ${msg.content}`);
+      .map((msg: Message) => `[${msg.sender}]: ${msg.content}`);
 
     // Prepare classification request
     const request: ClassificationRequest = {

@@ -316,8 +316,8 @@ export class DatabaseService {
       content: message.content,
       sender: message.sender,
       timestamp: message.timestamp,
-      message_type: message.messageType,
-      variant: message.variant
+      message_type: (message as any).messageType || null,
+      variant: message.variant || null
     });
 
     // Update lead's updated_at
@@ -394,17 +394,17 @@ export class DatabaseService {
     await db.insert(schema.research_snapshots).values({
       id: uuidv4(),
       lead_id: leadId,
-      company_name: snapshot.companyName,
-      company_description: snapshot.companyDescription,
-      industry: snapshot.industry,
-      recent_news: snapshot.recentNews as any,
-      key_products: snapshot.keyProducts as any,
-      challenges: snapshot.challenges as any,
-      opportunities: snapshot.opportunities as any,
-      funding_info: snapshot.fundingInfo,
-      employee_count: snapshot.employeeCount,
-      sources: snapshot.sources as any,
-      researched_at: snapshot.researched_at
+      company_name: snapshot.companyName || 'Unknown',
+      company_description: snapshot.companyDescription || null,
+      industry: snapshot.industry || null,
+      recent_news: (snapshot.recentNews as any) || null,
+      key_products: (snapshot.keyProducts as any) || null,
+      challenges: (snapshot.challenges as any) || null,
+      opportunities: (snapshot.opportunities as any) || null,
+      funding_info: snapshot.fundingInfo || null,
+      employee_count: snapshot.employeeCount || null,
+      sources: (snapshot.sources as any) || null,
+      researched_at: snapshot.researched_at || new Date()
     });
 
     // Update lead's updated_at
