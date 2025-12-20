@@ -1,2 +1,16 @@
 node_modules/
 .env
+
+# Build output
+dist/
+
+# Runtime data
+data/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
