@@ -1,0 +1,54 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: linkedin-outreach-db
+    env: postgres
+    plan: free
+    databaseName: linkedin_outreach
+    databaseUser: linkedin_user
+    region: oregon
+    ipAllowList: []
+
+  # Node.js API Service
+  - type: web
+    name: linkedin-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: STORAGE_TYPE
+        value: postgres
+      - key: DB_POOL_MAX
+        value: 20
+      - key: CONFIDENCE_THRESHOLD
+        value: 0.7
+      - key: RESEARCH_MODEL
+        value: sonar-pro
+      - key: RESEARCH_TIMEOUT
+        value: 30000
+      - key: CLAUDE_MODEL
+        value: claude-3-5-sonnet-20241022
+      - key: CLAUDE_TEMPERATURE
+        value: 0.7
+      - key: CLAUDE_MAX_TOKENS
+        value: 4096
+      - key: CLAUDE_CLASSIFICATION_MODEL
+        value: claude-3-5-sonnet-20241022
+      - key: CLAUDE_CLASSIFICATION_TEMPERATURE
+        value: 0.3
+      - key: CLAUDE_CLASSIFICATION_MAX_TOKENS
+        value: 500
+      - key: DATABASE_URL
+        fromDatabase:
+          name: linkedin-outreach-db
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Set this manually in Render dashboard
+      - key: PERPLEXITY_API_KEY
+        sync: false  # Set this manually in Render dashboard
