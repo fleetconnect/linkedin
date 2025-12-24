@@ -32,9 +32,11 @@ export type MessageType = 'initial' | 'follow-up' | 'reply';
 export type FollowUpType = 'positive' | 'neutral';
 
 /**
- * Model options
+ * Model options (deprecated - use config instead)
+ * Model determined by claude.config.ts (single source of truth)
  */
 export type ModelType =
+  | 'claude-opus-4-5'
   | 'claude-3-5-sonnet-20241022'
   | 'claude-3-opus-20240229';
 
@@ -53,8 +55,8 @@ export interface PromptDefinition<TInput = any, TOutput = any> {
   /** Version */
   version: PromptVersion;
 
-  /** Claude model to use */
-  model: ModelType;
+  /** Claude model to use (optional - determined by config) */
+  model?: ModelType;
 
   /** Temperature setting */
   temperature: number;

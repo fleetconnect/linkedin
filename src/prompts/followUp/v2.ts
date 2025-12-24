@@ -21,7 +21,7 @@ export const followUpV2: PromptDefinition<FollowUpInput> = {
   id: 'followup_v2',
   type: 'follow_up',
   version: 'v2',
-  model: 'claude-3-5-sonnet-20241022',
+  // Model determined by config (single source of truth)
   temperature: 0.7,
   maxTokens: 150,
 

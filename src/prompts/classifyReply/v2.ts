@@ -19,7 +19,7 @@ export const classifyReplyV2: PromptDefinition<ClassifyReplyInput> = {
   id: 'classify_reply_v2',
   type: 'classify_reply',
   version: 'v2',
-  model: 'claude-3-5-sonnet-20241022',
+  // Model determined by config (single source of truth)
   temperature: 0.3,
   maxTokens: 500,
 

@@ -24,7 +24,7 @@ export const generateInitialV2: PromptDefinition<GenerateMessageInput> = {
   id: 'generate_message_initial_v2',
   type: 'generate_message',
   version: 'v2',
-  model: 'claude-3-5-sonnet-20241022',
+  // Model determined by config (single source of truth)
   temperature: 0.7,
   maxTokens: 200,  // Shorter output
 

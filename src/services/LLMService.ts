@@ -53,11 +53,14 @@ export class LLMService {
     // Get user prompt
     const userPrompt = prompt.user(input);
 
+    // Log model being used (Step 4: Safety log)
+    console.log('[LLM] Classify using model:', claudeConfig.classificationModel);
+
     // Wrap Claude call in retry logic
     const retryResult = await retryWithBackoff(
       async () => {
         const message = await this.client.messages.create({
-          model: prompt.model,
+          model: claudeConfig.classificationModel,  // Single source of truth from config
           max_tokens: prompt.maxTokens,
           temperature: prompt.temperature,
           system: systemPrompt,
@@ -122,7 +125,7 @@ export class LLMService {
         operation: 'classify',
         promptId: prompt.id,
         promptVersion: prompt.version,
-        model: prompt.model,
+        model: claudeConfig.classificationModel,  // Single source of truth
         temperature: prompt.temperature,
         success: true,
         latency_ms: latency,
@@ -134,7 +137,7 @@ export class LLMService {
         classification: retryResult.result.classification,
         reasoning: retryResult.result.reasoning,
         timestamp: new Date(),
-        modelUsed: prompt.model
+        modelUsed: claudeConfig.classificationModel  // Single source of truth
       };
     } else {
       // All retries failed - log and throw
@@ -142,7 +145,7 @@ export class LLMService {
         operation: 'classify',
         promptId: prompt.id,
         promptVersion: prompt.version,
-        model: prompt.model,
+        model: claudeConfig.classificationModel,  // Single source of truth
         temperature: prompt.temperature,
         success: false,
         latency_ms: latency,

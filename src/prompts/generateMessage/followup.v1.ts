@@ -13,7 +13,7 @@ export const generateFollowupV1: PromptDefinition<GenerateMessageInput> = {
   id: 'generate_message_followup_v1',
   type: 'generate_message',
   version: 'v1',
-  model: 'claude-3-5-sonnet-20241022',
+  // Model determined by config (single source of truth)
   temperature: 0.7,
   maxTokens: 300,
 

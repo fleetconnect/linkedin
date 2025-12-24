@@ -13,7 +13,7 @@ export const followUpPositiveV1: PromptDefinition<FollowUpInput> = {
   id: 'followup_positive_v1',
   type: 'follow_up',
   version: 'v1',
-  model: 'claude-3-5-sonnet-20241022',
+  // Model determined by config (single source of truth)
   temperature: 0.7,
   maxTokens: 300,
 
