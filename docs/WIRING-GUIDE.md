@@ -15,6 +15,101 @@ Wire together a production LinkedIn outreach system with:
 
 ---
 
+## 🔒 Non-Negotiable Wiring Rules (Read Before Starting)
+
+**These rules protect system integrity. Violating them breaks the architecture.**
+
+### 1. n8n Must NEVER Contain Prompt Logic
+- ❌ No prompt templates in n8n workflows
+- ❌ No message generation in n8n
+- ❌ No classification logic in n8n
+- ✅ n8n only calls API endpoints
+- ✅ n8n only routes based on API responses
+
+**Why:** Prompts are versioned, tested, and optimized in the API. Duplicating them in n8n creates drift and breaks reproducibility.
+
+### 2. n8n Must NEVER Decide Message Content
+- ❌ No "if interested, send this message" logic
+- ❌ No message templates stored in n8n
+- ❌ No conditional message assembly
+- ✅ API decides what to send (or if to send)
+- ✅ n8n only delivers what API provides
+
+**Why:** Message content is intelligence. Intelligence lives in the API, not the orchestrator.
+
+### 3. All Outbound Decisions Originate in the API
+- ❌ n8n cannot decide to send a message
+- ❌ n8n cannot skip a message
+- ❌ n8n cannot modify message content
+- ✅ API sets lead state to READY_TO_SEND
+- ✅ n8n reads state and executes
+
+**Why:** The API is the single source of truth for lead state and messaging rules. n8n is a delivery mechanism.
+
+### 4. HeyReach is Execution-Only
+- ❌ Don't use HeyReach's "AI features"
+- ❌ Don't use HeyReach's scheduling logic
+- ❌ Don't use HeyReach's message templates
+- ✅ Use HeyReach only to send exact messages
+- ✅ Use HeyReach only for delivery tracking
+
+**Why:** HeyReach is the "hands on keyboard." Your API is the "brain." Don't give the hands a brain.
+
+### 5. If Unsure, Do Nothing Rather Than Force a Send
+- ❌ Don't send "default" messages on error
+- ❌ Don't retry failed classifications with dummy data
+- ❌ Don't assume intent if API times out
+- ✅ Log the error
+- ✅ Alert on failure
+- ✅ Wait for manual intervention
+
+**Why:** A missed message is better than a wrong message. This system is licensable software—every action must be deterministic and auditable.
+
+---
+
+## ⚠️ Common Violations to Avoid
+
+**Scenario 1:** "The API is slow, let me cache the message template in n8n"
+- **Why it's wrong:** Creates version drift, breaks A/B testing, not reproducible
+- **Correct approach:** Optimize API response time, add caching in the API
+
+**Scenario 2:** "I'll add a fallback message if classification fails"
+- **Why it's wrong:** Sends unintended messages, violates determinism
+- **Correct approach:** Return error, log, alert, manual review
+
+**Scenario 3:** "I'll use HeyReach's built-in personalization"
+- **Why it's wrong:** Intelligence is now in HeyReach, not your API
+- **Correct approach:** API generates fully personalized message, HeyReach sends it verbatim
+
+**Scenario 4:** "I'll add logic to skip weekends in n8n"
+- **Why it's wrong:** Business logic in orchestrator, not intelligence layer
+- **Correct approach:** API checks schedule, sets state accordingly
+
+---
+
+## ✅ Correct Wiring Pattern
+
+**What n8n SHOULD do:**
+1. Listen for webhooks (triggers)
+2. Call API endpoints (HTTP requests)
+3. Read API responses (parse JSON)
+4. Route based on responses (switch/if nodes)
+5. Call external services (HeyReach, Slack, etc.)
+6. Log results
+
+**What n8n should NEVER do:**
+1. Generate message content
+2. Decide intent from message text
+3. Apply business rules
+4. Store prompt templates
+5. Make sending decisions
+6. Modify API responses
+
+**Golden Rule:**
+> If you're typing a prompt, classification rule, or message template into n8n, you're doing it wrong. Stop. Move it to the API.
+
+---
+
 ## 📐 System Architecture
 
 ```
