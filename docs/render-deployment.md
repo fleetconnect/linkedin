@@ -1,19 +1,376 @@
 # Render Deployment Guide
 
-Complete guide to deploy the LinkedIn Intelligence API to Render.com
+**Deploy the LinkedIn Intelligence API to Render using Infrastructure-as-Code**
+
+---
+
+## Why Render + Blueprint?
+
+✅ **Permanent production URL** - No ngrok restarts
+✅ **PostgreSQL provisioned automatically** - No manual DB setup
+✅ **Atomic deployment** - App + DB together
+✅ **SSL/HTTPS by default** - Production-grade security
+✅ **Auto-deploy on git push** - CI/CD built-in
+✅ **Infrastructure-as-code** - `render.yaml` is source of truth
+✅ **Zero configuration drift** - Reproducible, licensable
 
 ---
 
 ## Prerequisites
 
-✅ GitHub repository pushed to `fleetconnect/linkedin`
+✅ GitHub repository: `fleetconnect/linkedin`
 ✅ Render account (free at render.com)
 ✅ Anthropic API key
-✅ Perplexity API key (optional, for research features)
+✅ Perplexity API key (optional)
 
 ---
 
-## Option 1: Automated Deployment (Recommended)
+## Deployment Steps
+
+### Step 1: Verify `render.yaml` Exists
+
+The repo already contains `render.yaml` at the root. This defines:
+- PostgreSQL database (`linkedin-outreach-db`)
+- Node.js web service (`linkedin-api`)
+- All environment variables (except secrets)
+- Build and start commands
+
+**Do NOT edit render.yaml manually** - it's the infrastructure contract.
+
+### Step 2: Deploy via Blueprint
+
+1. Go to https://render.com
+2. Sign in with GitHub
+3. Click **"New +"** → **"Blueprint"**
+4. Select repository: `fleetconnect/linkedin`
+5. Select branch: `main` or `claude/classify-reply-intent-I3wT0`
+6. Render auto-detects `render.yaml`
+7. Click **"Apply"**
+
+**That's it.** Render will:
+- ✅ Create PostgreSQL database
+- ✅ Create web service
+- ✅ Wire DATABASE_URL automatically
+- ✅ Run migrations on first deploy
+- ✅ Start the API server
+
+### Step 3: Add Secret Environment Variables
+
+After Blueprint deployment completes:
+
+1. Go to **linkedin-api** service (not the database)
+2. Click **"Environment"** tab
+3. Add these **two secrets only**:
+   ```
+   ANTHROPIC_API_KEY=sk-ant-api03-YOUR_KEY
+   PERPLEXITY_API_KEY=pplx-YOUR_KEY
+   ```
+4. Click **"Save Changes"**
+5. Service auto-redeploys with secrets
+
+**Do NOT add:**
+- ❌ DATABASE_URL (auto-wired by Blueprint)
+- ❌ PORT (defined in render.yaml)
+- ❌ NODE_ENV (defined in render.yaml)
+- ❌ Any other variables (defined in render.yaml)
+
+---
+
+## Verification
+
+### 1. Check Deployment Logs
+
+In the **linkedin-api** service:
+- Go to **"Logs"** tab
+- Look for:
+```
+📦 Initializing postgres storage...
+✅ Database connected: 2025-12-22 ...
+✅ PostgreSQL storage initialized
+🚀 LinkedIn Intent Classifier API running on port 3000
+```
+
+### 2. Get Your Production URL
+
+After deployment completes, you'll see:
+```
+https://linkedin-api.onrender.com
+```
+
+### 3. Test the API
+
+**Health Check:**
+```bash
+curl https://linkedin-api.onrender.com/api/health
+# {"status":"ok","timestamp":"..."}
+```
+
+**Create Test Campaign:**
+```bash
+curl -X POST https://linkedin-api.onrender.com/api/campaigns \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production Campaign",
+    "messaging_rules": {
+      "personalization": true,
+      "maxMessagesPerDay": 10,
+      "researchRequired": false,
+      "toneOfVoice": "professional"
+    }
+  }'
+```
+
+**Verify Database:**
+```bash
+curl https://linkedin-api.onrender.com/api/campaigns
+# Should return the campaign you just created
+```
+
+---
+
+## Update n8n Configuration
+
+Replace local/ngrok URLs with production:
+
+**Before:**
+```
+http://localhost:3000                    ❌
+https://abc123.ngrok-free.app           ❌
+```
+
+**After:**
+```
+https://linkedin-api.onrender.com        ✅
+```
+
+**Update all n8n HTTP Request nodes:**
+- `https://linkedin-api.onrender.com/api/leads`
+- `https://linkedin-api.onrender.com/api/classify`
+- `https://linkedin-api.onrender.com/api/integrations/webhook/state-update`
+
+---
+
+## CI/CD (Automatic Deployment)
+
+Once deployed via Blueprint, Render watches your GitHub repo:
+
+```bash
+# Make changes locally
+git add .
+git commit -m "Update classification logic"
+git push origin main
+
+# Render automatically:
+# 1. Detects the push
+# 2. Builds the app
+# 3. Runs migrations
+# 4. Deploys with zero downtime
+```
+
+**No manual steps required.**
+
+---
+
+## Monitoring
+
+### Real-Time Logs
+1. Go to **linkedin-api** service
+2. Click **"Logs"** tab
+3. See all requests, errors, database queries
+
+### Metrics
+1. Click **"Metrics"** tab
+2. View:
+   - Request volume
+   - Response times
+   - CPU/Memory usage
+   - Error rates
+
+### Database Metrics
+1. Go to **linkedin-outreach-db** database
+2. Click **"Metrics"** tab
+3. View:
+   - Connection count
+   - Query performance
+   - Storage usage
+
+---
+
+## Free Tier Limits
+
+**PostgreSQL (Free):**
+- 256 MB storage
+- 97 connection hours/month
+- Expires after 90 days of inactivity
+
+**Web Service (Free):**
+- 750 hours/month
+- Spins down after 15 minutes inactivity
+- Cold start: ~30 seconds on first request
+
+**To eliminate cold starts:**
+- Upgrade to **Starter** ($7/month)
+- Always-on, no spin-down
+
+---
+
+## Troubleshooting
+
+### Build Fails
+
+**Symptom:** Red "Build failed" status
+
+**Check:**
+1. Go to **"Logs"** tab during build
+2. Look for TypeScript errors
+3. Fix locally, commit, push
+
+**Common causes:**
+- Missing dependencies in package.json
+- TypeScript compilation errors
+- Missing environment variables (secrets)
+
+### Database Connection Fails
+
+**Symptom:** "connect ECONNREFUSED" in logs
+
+**Solution:**
+- Blueprint automatically wires DATABASE_URL
+- Check that database service is running (green status)
+- Verify both services are in same region
+
+**DO NOT:**
+- ❌ Manually set DATABASE_URL
+- ❌ Use external database URL
+- ❌ Create database manually
+
+### API Returns 404
+
+**Symptom:** All routes return 404
+
+**Check:**
+1. Verify `npm start` runs `node dist/index.js`
+2. Check build created `dist/` folder
+3. Look for startup errors in logs
+
+**Fix:**
+- Ensure `npm run build` succeeds locally
+- Check `package.json` start command
+
+---
+
+## Rollback
+
+If a deployment breaks production:
+
+1. Go to **"Deploys"** tab
+2. Find last working deployment (green checkmark)
+3. Click **"..."** → **"Redeploy"**
+4. Service reverts instantly
+
+---
+
+## Security
+
+### Environment Variables
+- ✅ Secrets encrypted at rest
+- ✅ Never logged or exposed
+- ✅ Not in git history
+- ✅ Only accessible to your service
+
+### Database
+- ✅ Internal networking only
+- ✅ No public internet access
+- ✅ TLS connections enforced
+- ✅ Automatic backups (paid plans)
+
+### API
+- ✅ HTTPS/TLS by default
+- ✅ Render-managed certificates
+- ✅ DDoS protection included
+
+---
+
+## Cost Optimization
+
+**Free Tier (Development/Testing):**
+- Good for: Testing, staging, low-traffic apps
+- Accepts: 15-minute spin-down delays
+- Limitations: 750 hours/month, cold starts
+
+**Starter Plan ($7/month):**
+- Good for: Production with low-medium traffic
+- Benefits: Always-on, no cold starts, 24/7 availability
+- When to upgrade: Before production launch
+
+**Standard Plan ($25/month):**
+- Good for: High-traffic production
+- Benefits: More resources, horizontal scaling
+- When to upgrade: >1000 requests/day
+
+---
+
+## 🚫 What NOT to Do
+
+**DO NOT create services manually:**
+- ❌ Don't use "New Web Service"
+- ❌ Don't manually create PostgreSQL
+- ❌ Don't copy/paste DATABASE_URL
+- ❌ Don't edit runtime settings in UI
+
+**WHY?**
+- Creates configuration drift
+- Not reproducible
+- Can't be licensed
+- Breaks CI/CD
+- Violates infrastructure-as-code
+
+**INSTEAD:**
+- ✅ Always use Blueprint
+- ✅ Edit render.yaml if needed
+- ✅ Let Render wire everything
+- ✅ Version control all changes
+
+---
+
+## Updating Configuration
+
+**To change environment variables:**
+
+1. Edit `render.yaml` (for non-secrets)
+2. Commit and push to GitHub
+3. Render auto-deploys changes
+
+**To add secrets:**
+
+1. Go to service → Environment tab
+2. Add secret variables only
+3. Save (triggers redeploy)
+
+---
+
+## Next Steps
+
+✅ Deploy via Blueprint
+✅ Add API keys (secrets)
+✅ Test health endpoint
+✅ Update n8n with production URL
+✅ Configure HeyReach webhooks
+✅ Monitor logs for 24 hours
+⏳ Upgrade to Starter before launch (optional)
+⏳ Add custom domain (optional)
+
+---
+
+## Support
+
+**Render Docs:** https://render.com/docs/infrastructure-as-code
+**API Reference:** See `docs/api-reference.md`
+**n8n Integration:** See `docs/n8n-integration-setup.md`
+
+---
+
+**Your API is production-ready. Deploy with confidence.** 🚀
 
 We've created a `render.yaml` that automates the entire setup.
 
