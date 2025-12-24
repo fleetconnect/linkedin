@@ -4,8 +4,8 @@ import { DraftFollowupTool } from '../tools/draftFollowup';
 import { IStorageService } from '../services/StorageFactory';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { v4 as uuidv4 } from 'uuid';
-import observability from '../services/ObservabilityService';
-import { LeadState } from '../types';
+import observability, { LogLevel, LogCategory } from '../services/ObservabilityService';
+import { LeadState, Intent, Sentiment } from '../types';
 
 export function createRouter(
   controller: ClassificationController,
@@ -514,6 +514,457 @@ export function createRouter(
 
       } catch (error) {
         console.error('Generate initial message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== Follow-up Recommendation (Human-in-the-Loop) ====================
+
+  if (storageService) {
+    /**
+     * GET /api/leads/eligible-for-followup
+     * Returns leads that MIGHT need follow-up (conservative logic)
+     * API decides eligibility based on:
+     * - Current state (INTERESTED, REPLIED)
+     * - Time since last contact
+     * - Conversation sentiment
+     * - Campaign rules
+     *
+     * Note: May return zero leads (valid outcome)
+     */
+    router.get('/leads/eligible-for-followup', async (req: Request, res: Response) => {
+      try {
+        const allLeads = await storageService.getLeads();
+        const eligible: any[] = [];
+
+        // Conservative eligibility criteria
+        const MIN_DAYS_SINCE_CONTACT = 3; // Wait at least 3 days before suggesting follow-up
+        const MAX_DAYS_SINCE_CONTACT = 14; // Don't suggest if more than 14 days (probably lost)
+
+        for (const lead of allLeads) {
+          const reasons: string[] = [];
+          const disqualifiers: string[] = [];
+
+          // Check 1: State must be INTERESTED or REPLIED
+          if (lead.state !== LeadState.INTERESTED && lead.state !== LeadState.REPLIED) {
+            disqualifiers.push(`State is ${lead.state}, not INTERESTED or REPLIED`);
+            observability.log(
+              LogLevel.DEBUG,
+              LogCategory.API,
+              `Lead ${lead.id} (${lead.name}) ineligible: wrong state`,
+              { leadId: lead.id, state: lead.state }
+            );
+            continue;
+          }
+          reasons.push(`State is ${lead.state}`);
+
+          // Check 2: Must have conversation history
+          if (!lead.conversationHistory || lead.conversationHistory.length === 0) {
+            disqualifiers.push('No conversation history');
+            observability.log(
+              LogLevel.DEBUG,
+              LogCategory.API,
+              `Lead ${lead.id} (${lead.name}) ineligible: no conversation history`,
+              { leadId: lead.id }
+            );
+            continue;
+          }
+
+          // Check 3: Calculate time since last message
+          const sortedMessages = [...lead.conversationHistory].sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+          const lastMessage = sortedMessages[0];
+          const daysSinceLastMessage = (Date.now() - new Date(lastMessage.timestamp).getTime()) / (1000 * 60 * 60 * 24);
+
+          // Too soon to follow up (conservative: wait at least MIN_DAYS_SINCE_CONTACT days)
+          if (daysSinceLastMessage < MIN_DAYS_SINCE_CONTACT) {
+            disqualifiers.push(`Only ${daysSinceLastMessage.toFixed(1)} days since last message (min: ${MIN_DAYS_SINCE_CONTACT})`);
+            observability.log(
+              LogLevel.INFO,
+              LogCategory.API,
+              `Lead ${lead.id} (${lead.name}) ineligible: too soon to follow up`,
+              {
+                leadId: lead.id,
+                daysSinceLastMessage: daysSinceLastMessage.toFixed(1),
+                minDays: MIN_DAYS_SINCE_CONTACT
+              }
+            );
+            continue;
+          }
+
+          // Too late to follow up (probably lost interest)
+          if (daysSinceLastMessage > MAX_DAYS_SINCE_CONTACT) {
+            disqualifiers.push(`${daysSinceLastMessage.toFixed(1)} days since last message (max: ${MAX_DAYS_SINCE_CONTACT})`);
+            observability.log(
+              LogLevel.INFO,
+              LogCategory.API,
+              `Lead ${lead.id} (${lead.name}) ineligible: too long since contact`,
+              {
+                leadId: lead.id,
+                daysSinceLastMessage: daysSinceLastMessage.toFixed(1),
+                maxDays: MAX_DAYS_SINCE_CONTACT
+              }
+            );
+            continue;
+          }
+
+          reasons.push(`${daysSinceLastMessage.toFixed(1)} days since last message (within ${MIN_DAYS_SINCE_CONTACT}-${MAX_DAYS_SINCE_CONTACT} day window)`);
+
+          // Check 4: Who sent the last message?
+          const lastMessageFromUs = lastMessage.sender === 'user';
+          if (lastMessageFromUs) {
+            // We already sent a follow-up, they haven't replied
+            // Conservative: Don't double-follow-up
+            disqualifiers.push('Last message was from us (no prospect reply yet)');
+            observability.log(
+              LogLevel.INFO,
+              LogCategory.API,
+              `Lead ${lead.id} (${lead.name}) ineligible: already sent follow-up, awaiting response`,
+              { leadId: lead.id, lastSender: 'user' }
+            );
+            continue;
+          }
+
+          reasons.push('Last message was from prospect (our turn to respond)');
+
+          // Check 5: Check sentiment of last classification
+          // Conservative: Only suggest follow-up if sentiment is positive or neutral
+          if (lead.lastClassification) {
+            const sentiment = lead.lastClassification.sentiment;
+            if (sentiment === Sentiment.NEGATIVE) {
+              disqualifiers.push('Last classification sentiment was negative');
+              observability.log(
+                LogLevel.INFO,
+                LogCategory.API,
+                `Lead ${lead.id} (${lead.name}) ineligible: negative sentiment`,
+                { leadId: lead.id, sentiment }
+              );
+              continue;
+            }
+            reasons.push(`Last classification sentiment: ${sentiment}`);
+          }
+
+          // ELIGIBLE - Add to results
+          eligible.push({
+            leadId: lead.id,
+            name: lead.name,
+            company: lead.company,
+            state: lead.state,
+            lastContactedAt: lastMessage.timestamp,
+            daysSinceLastMessage: parseFloat(daysSinceLastMessage.toFixed(1)),
+            conversationSummary: lead.lastClassification
+              ? `Prospect showed ${lead.lastClassification.intent} intent with ${lead.lastClassification.sentiment} sentiment`
+              : 'No classification available',
+            classification: lead.lastClassification,
+            eligibilityReasons: reasons
+          });
+
+          observability.log(
+            LogLevel.INFO,
+            LogCategory.API,
+            `Lead ${lead.id} (${lead.name}) ELIGIBLE for follow-up`,
+            {
+              leadId: lead.id,
+              reasons,
+              daysSinceLastMessage: daysSinceLastMessage.toFixed(1)
+            }
+          );
+        }
+
+        // Log summary
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Follow-up eligibility check complete: ${eligible.length} eligible out of ${allLeads.length} total leads`,
+          {
+            totalLeads: allLeads.length,
+            eligibleCount: eligible.length,
+            eligibleLeadIds: eligible.map(e => e.leadId)
+          }
+        );
+
+        return res.json({
+          success: true,
+          count: eligible.length,
+          data: eligible
+        });
+
+      } catch (error) {
+        console.error('Eligible for follow-up error:', error);
+        observability.log(
+          LogLevel.ERROR,
+          LogCategory.API,
+          'Error checking follow-up eligibility',
+          { error: error instanceof Error ? error.message : 'Unknown error' }
+        );
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/leads/:leadId/suggest-followup
+     * Generate follow-up suggestion OR return WAIT
+     *
+     * CRITICAL:
+     * - Does NOT change state
+     * - Does NOT mark as READY_TO_SEND
+     * - Conservative logic: bias toward WAIT
+     * - Silence is a first-class outcome
+     *
+     * Returns either:
+     * - {action: "SUGGEST", suggestedMessage: "...", reasoning: "...", confidence: "..."}
+     * - {action: "WAIT", reasoning: "..."}
+     */
+    router.post('/leads/:leadId/suggest-followup', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Evaluating follow-up suggestion for lead ${leadId} (${lead.name})`,
+          { leadId, leadName: lead.name, state: lead.state }
+        );
+
+        // CONSERVATIVE CHECKS - Bias toward WAIT
+
+        // Check 1: Verify state is appropriate
+        if (lead.state !== LeadState.INTERESTED && lead.state !== LeadState.REPLIED) {
+          const reasoning = `Lead state is ${lead.state}. Follow-ups are only appropriate for INTERESTED or REPLIED leads.`;
+          observability.log(
+            LogLevel.INFO,
+            LogCategory.API,
+            `WAIT decision for lead ${leadId}: inappropriate state`,
+            { leadId, state: lead.state, reasoning }
+          );
+          return res.json({
+            success: true,
+            data: {
+              action: 'WAIT',
+              reasoning
+            }
+          });
+        }
+
+        // Check 2: Analyze last message content for "polite brush-off" signals
+        if (lead.conversationHistory && lead.conversationHistory.length > 0) {
+          const sortedMessages = [...lead.conversationHistory].sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+          const lastProspectMessage = sortedMessages.find(m => m.sender === 'lead');
+
+          if (lastProspectMessage) {
+            const content = lastProspectMessage.content.toLowerCase();
+            const brushOffSignals = [
+              'thanks',
+              'thank you',
+              'i\'ll let you know',
+              'i\'ll reach out',
+              'i\'ll be in touch',
+              'not right now',
+              'not at this time',
+              'maybe later',
+              'busy',
+              'swamped',
+              'not interested',
+              'no thanks'
+            ];
+
+            const hasBrushOffSignal = brushOffSignals.some(signal => content.includes(signal));
+
+            // Conservative: If they gave a polite brush-off, WAIT
+            if (hasBrushOffSignal && content.length < 100) {
+              // Short polite message = brush off
+              const reasoning = `Last response was a polite brush-off ("${lastProspectMessage.content.substring(0, 50)}..."). Following up now would likely reduce trust. Recommend waiting or marking as LOST.`;
+              observability.log(
+                LogLevel.INFO,
+                LogCategory.API,
+                `WAIT decision for lead ${leadId}: polite brush-off detected`,
+                { leadId, lastMessage: lastProspectMessage.content, reasoning }
+              );
+              return res.json({
+                success: true,
+                data: {
+                  action: 'WAIT',
+                  reasoning
+                }
+              });
+            }
+          }
+        }
+
+        // Check 3: Check if classification is INTERESTED with positive/neutral sentiment
+        if (lead.lastClassification) {
+          const { intent, sentiment, confidence } = lead.lastClassification;
+
+          // Conservative: Only suggest if INTERESTED + positive/neutral sentiment + high confidence
+          if (intent !== Intent.INTERESTED && intent !== Intent.BOOKED) {
+            const reasoning = `Last classification intent was "${intent}". Only INTERESTED or BOOKED leads should receive follow-ups.`;
+            observability.log(
+              LogLevel.INFO,
+              LogCategory.API,
+              `WAIT decision for lead ${leadId}: intent not interested`,
+              { leadId, intent, reasoning }
+            );
+            return res.json({
+              success: true,
+              data: {
+                action: 'WAIT',
+                reasoning
+              }
+            });
+          }
+
+          // Conservative: If low confidence, WAIT
+          if (confidence < 0.6) {
+            const reasoning = `Classification confidence is ${(confidence * 100).toFixed(0)}% (below 60% threshold). Not confident enough to suggest follow-up. Recommend human review.`;
+            observability.log(
+              LogLevel.INFO,
+              LogCategory.API,
+              `WAIT decision for lead ${leadId}: low classification confidence`,
+              { leadId, confidence, reasoning }
+            );
+            return res.json({
+              success: true,
+              data: {
+                action: 'WAIT',
+                reasoning
+              }
+            });
+          }
+
+          // Conservative: If negative sentiment, WAIT
+          if (sentiment === Sentiment.NEGATIVE) {
+            const reasoning = `Last classification sentiment was negative. Following up could damage relationship. Recommend waiting or marking as LOST.`;
+            observability.log(
+              LogLevel.INFO,
+              LogCategory.API,
+              `WAIT decision for lead ${leadId}: negative sentiment`,
+              { leadId, sentiment, reasoning }
+            );
+            return res.json({
+              success: true,
+              data: {
+                action: 'WAIT',
+                reasoning
+              }
+            });
+          }
+        }
+
+        // Check 4: If we get here, generate suggestion (if followupTool available)
+        if (!followupTool) {
+          const reasoning = 'Follow-up generation tool not configured. Cannot generate suggestion.';
+          observability.log(
+            LogLevel.WARN,
+            LogCategory.API,
+            `WAIT decision for lead ${leadId}: no followupTool available`,
+            { leadId, reasoning }
+          );
+          return res.json({
+            success: true,
+            data: {
+              action: 'WAIT',
+              reasoning
+            }
+          });
+        }
+
+        // Generate suggestion using existing followupTool
+        try {
+          const followupResult = await followupTool.execute(leadId);
+
+          if (!followupResult.success || !followupResult.message) {
+            const reasoning = 'Failed to generate follow-up message. Recommend manual review.';
+            observability.log(
+              LogLevel.WARN,
+              LogCategory.API,
+              `WAIT decision for lead ${leadId}: followup generation failed`,
+              { leadId, reasoning, error: followupResult.error }
+            );
+            return res.json({
+              success: true,
+              data: {
+                action: 'WAIT',
+                reasoning
+              }
+            });
+          }
+
+          // Success - return suggestion
+          const confidence = lead.lastClassification?.confidence || 0.7;
+          const confidenceLevel = confidence >= 0.8 ? 'high' : confidence >= 0.6 ? 'medium' : 'low';
+
+          const reasoning = `Lead showed ${lead.lastClassification?.intent || 'positive'} intent with ${lead.lastClassification?.sentiment || 'neutral'} sentiment. Appropriate to follow up.`;
+
+          observability.log(
+            LogLevel.INFO,
+            LogCategory.API,
+            `SUGGEST decision for lead ${leadId}: generated follow-up message`,
+            {
+              leadId,
+              confidence: confidenceLevel,
+              intent: lead.lastClassification?.intent,
+              sentiment: lead.lastClassification?.sentiment
+            }
+          );
+
+          return res.json({
+            success: true,
+            data: {
+              action: 'SUGGEST',
+              suggestedMessage: followupResult.message,
+              reasoning,
+              confidence: confidenceLevel,
+              metadata: {
+                leadId: lead.id,
+                leadName: lead.name,
+                company: lead.company,
+                state: lead.state,
+                lastIntent: lead.lastClassification?.intent,
+                lastSentiment: lead.lastClassification?.sentiment
+              }
+            }
+          });
+
+        } catch (error) {
+          const reasoning = 'Error generating follow-up message. Recommend manual review.';
+          observability.log(
+            LogLevel.ERROR,
+            LogCategory.API,
+            `WAIT decision for lead ${leadId}: generation error`,
+            { leadId, reasoning, error: error instanceof Error ? error.message : 'Unknown error' }
+          );
+          return res.json({
+            success: true,
+            data: {
+              action: 'WAIT',
+              reasoning
+            }
+          });
+        }
+
+      } catch (error) {
+        console.error('Suggest follow-up error:', error);
+        observability.log(
+          LogLevel.ERROR,
+          LogCategory.API,
+          'Error in suggest-followup endpoint',
+          { error: error instanceof Error ? error.message : 'Unknown error' }
+        );
         return res.status(500).json({
           error: error instanceof Error ? error.message : 'Internal server error'
         });
