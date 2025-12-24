@@ -248,6 +248,8 @@
 
 **CRITICAL:** This NEVER auto-sends. Always requires human approval.
 
+**CRITICAL:** API may return `WAIT` - this is a valid outcome, not an error.
+
 ```
 ┌─────────────────────┐
 │  Schedule Trigger   │ ← Daily at 9 AM
@@ -264,51 +266,49 @@
            │
            ▼
 ┌─────────────────────┐
-│   Split In Batches  │
+│   Split In Batches  │ ← Process each eligible lead
 │   Batch Size: 1     │
 └──────────┬──────────┘
            │
            ▼
 ┌─────────────────────┐
 │   HTTP Request      │
-│  POST /api/leads/   │ ← Generate SUGGESTION only
+│  POST /api/leads/   │ ← Generate suggestion OR WAIT
 │  :id/suggest-       │   (does NOT set READY_TO_SEND)
 │  followup           │
 └──────────┬──────────┘
            │
            ▼
 ┌─────────────────────┐
-│   Slack Message     │ ← Present to human
-│   with Buttons      │
-│                     │
-│  "Follow-up for     │
-│   {{lead.name}}?"   │
-│                     │
-│  Suggested message: │
-│  "{{suggestedMsg}}" │
-│                     │
-│  [✅ Approve]       │
-│  [✏️ Edit]         │
-│  [❌ Reject]       │
-│  [⏸️ Snooze 3d]    │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Wait for Button    │ ← Human decision required
-│  Response           │
-└─────┬───┬───┬───────┘
-      │   │   │
-  ┌───┘   │   └─────────┐
-  │       │             │
-  ▼       ▼             ▼
-┌──────┐ ┌────┐ ┌──────────┐
-│Approve│ │Edit│ │Reject/   │
-│       │ │    │ │Snooze    │
-│Send   │ │Send│ │Do Nothing│
-│via    │ │via │ │          │
-│HeyReach││HeyReach│ │     │
-└───────┘ └────┘ └──────────┘
+│   Switch Node       │ ← Check action field
+│  {{$json.data.      │
+│   action}}          │
+└─────┬───────┬───────┘
+      │       │
+   SUGGEST   WAIT
+      │       │
+      ▼       ▼
+┌──────────┐ ┌────────┐
+│  Slack   │ │  End   │ ← Silence is valid
+│  Approval│ │  (Log) │
+│  with    │ └────────┘
+│  Buttons │
+└────┬─────┘
+     │
+     ▼
+┌──────────┐
+│ Wait for │ ← Human decision required
+│ Button   │
+└────┬─────┘
+     │
+     ▼
+┌──────────┐
+│ If       │
+│ Approved │
+│ → Send   │
+│ via      │
+│ HeyReach │
+└──────────┘
 ```
 
 **n8n Nodes:**
@@ -320,30 +320,67 @@
    - URL: `{{$env.API_BASE_URL}}/api/leads/eligible-for-followup`
    - Method: GET
    - **Note:** API decides eligibility (not n8n)
+   - **May return 0 leads** - this is valid
 
-3. **HTTP Request (Suggest Follow-up)**
-   - URL: `{{$env.API_BASE_URL}}/api/leads/{{$json.id}}/suggest-followup`
+3. **Split In Batches**
+   - Batch Size: 1
+   - Process each eligible lead
+
+4. **HTTP Request (Suggest Follow-up)**
+   - URL: `{{$env.API_BASE_URL}}/api/leads/{{$json.leadId}}/suggest-followup`
    - Method: POST
-   - **Returns:** Suggested message (NOT auto-approved)
+   - **Returns:**
+     ```json
+     // Option 1: SUGGEST
+     {
+       "success": true,
+       "data": {
+         "action": "SUGGEST",
+         "suggestedMessage": "...",
+         "reasoning": "...",
+         "confidence": "high|medium|low"
+       }
+     }
 
-4. **Slack Interactive Message**
+     // Option 2: WAIT (silence is valid)
+     {
+       "success": true,
+       "data": {
+         "action": "WAIT",
+         "reasoning": "Last response was a polite brush-off..."
+       }
+     }
+     ```
+
+5. **Switch Node** (based on action)
+   - Route 0: `action === "SUGGEST"` → Continue to Slack
+   - Route 1: `action === "WAIT"` → End workflow (log only)
+
+6. **Slack Interactive Message** (only if SUGGEST)
 ```json
 {
   "channel": "#sales",
-  "text": "Follow-up needed for {{$json.leadName}}",
+  "text": "Follow-up recommendation for {{$json.data.metadata.leadName}}",
   "blocks": [
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Lead:* {{$json.leadName}}\n*Company:* {{$json.company}}\n*Last Reply:* {{$json.lastReplyAt}}\n*Classification:* {{$json.classification}}"
+        "text": "*Lead:* {{$json.data.metadata.leadName}}\n*Company:* {{$json.data.metadata.company}}\n*State:* {{$json.data.metadata.state}}\n*Intent:* {{$json.data.metadata.lastIntent}}\n*Sentiment:* {{$json.data.metadata.lastSentiment}}\n*Confidence:* {{$json.data.confidence}}"
       }
     },
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Suggested Message:*\n{{$json.suggestedMessage}}"
+        "text": "*Reasoning:*\n{{$json.data.reasoning}}"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Suggested Message:*\n{{$json.data.suggestedMessage}}"
       }
     },
     {
@@ -353,7 +390,8 @@
           "type": "button",
           "text": {"type": "plain_text", "text": "✅ Approve & Send"},
           "value": "approve",
-          "action_id": "approve_followup"
+          "action_id": "approve_followup",
+          "style": "primary"
         },
         {
           "type": "button",
@@ -365,7 +403,8 @@
           "type": "button",
           "text": {"type": "plain_text", "text": "❌ Reject"},
           "value": "reject",
-          "action_id": "reject_followup"
+          "action_id": "reject_followup",
+          "style": "danger"
         },
         {
           "type": "button",
@@ -379,30 +418,37 @@
 }
 ```
 
-5. **Wait for Slack Response**
+7. **Wait for Slack Response**
    - Webhook trigger for Slack button response
 
-6. **Switch Node** (based on button clicked)
+8. **Switch Node** (based on button clicked)
    - Route 0: Approve → Send via HeyReach
    - Route 1: Edit → Show edit modal, then send
    - Route 2: Reject → Log and do nothing
    - Route 3: Snooze → Update API (snooze until date)
 
-7. **HTTP Request (Send if Approved)**
+9. **HTTP Request (Send if Approved)**
    - Only executes if approved/edited
    - URL: HeyReach send endpoint
    - Body: Approved message
 
-8. **HTTP Request (Update State)**
-   - URL: `{{$env.API_BASE_URL}}/api/integrations/webhook/state-update`
-   - Only after successful send
+10. **HTTP Request (Update State)**
+    - URL: `{{$env.API_BASE_URL}}/api/leads/{{$json.leadId}}/state`
+    - Only after successful send
+    - Body: `{"state": "CONTACTED", "sentAt": "{{$now}}", "messageId": "..."}`
 
-**✅ What this does:** Recommends, waits for human, executes decision
+**✅ What this does:** Recommends, respects WAIT, requires human approval for SUGGEST
 **❌ What this does NOT do:**
 - ❌ Auto-send anything
 - ❌ Decide timing (API decides)
 - ❌ Bypass human approval
-- ❌ Force sends on errors
+- ❌ Force sends when API says WAIT
+- ❌ Treat WAIT as an error
+
+**Key Difference from Other Workflows:**
+- API may return `action: "WAIT"` and workflow just logs it and ends
+- Silence is a first-class, valid outcome
+- No Slack message if API says WAIT
 
 ---
 

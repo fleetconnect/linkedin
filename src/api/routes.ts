@@ -614,7 +614,8 @@ export function createRouter(
 
           reasons.push(`${daysSinceLastMessage.toFixed(1)} days since last message (within ${MIN_DAYS_SINCE_CONTACT}-${MAX_DAYS_SINCE_CONTACT} day window)`);
 
-          // Check 4: Who sent the last message?
+          // Check 4: INVARIANT - Last message must be from prospect (not us)
+          // Belt-and-suspenders: If lead replied after our last message, only human can approve next send
           const lastMessageFromUs = lastMessage.sender === 'user';
           if (lastMessageFromUs) {
             // We already sent a follow-up, they haven't replied
@@ -623,13 +624,39 @@ export function createRouter(
             observability.log(
               LogLevel.INFO,
               LogCategory.API,
-              `Lead ${lead.id} (${lead.name}) ineligible: already sent follow-up, awaiting response`,
-              { leadId: lead.id, lastSender: 'user' }
+              `Lead ${lead.id} (${lead.name}) ineligible: INVARIANT VIOLATION - last message from us, not prospect`,
+              { leadId: lead.id, lastSender: 'user', invariant: 'prospect_must_reply_last' }
             );
             continue;
           }
 
           reasons.push('Last message was from prospect (our turn to respond)');
+
+          // Additional invariant check: Verify prospect actually replied after any of our messages
+          const ourMessages = lead.conversationHistory.filter((m: any) => m.sender === 'user');
+          const theirMessages = lead.conversationHistory.filter((m: any) => m.sender === 'lead');
+
+          if (ourMessages.length > 0 && theirMessages.length > 0) {
+            const lastOutboundTimestamp = Math.max(...ourMessages.map((m: any) => new Date(m.timestamp).getTime()));
+            const lastInboundTimestamp = Math.max(...theirMessages.map((m: any) => new Date(m.timestamp).getTime()));
+
+            if (lastOutboundTimestamp > lastInboundTimestamp) {
+              // Our message is newer - they haven't replied yet
+              disqualifiers.push('Our last outbound message is newer than their last reply');
+              observability.log(
+                LogLevel.WARN,
+                LogCategory.API,
+                `Lead ${lead.id} (${lead.name}) ineligible: INVARIANT VIOLATION - outbound message timestamp after last reply`,
+                {
+                  leadId: lead.id,
+                  lastOutboundTimestamp: new Date(lastOutboundTimestamp).toISOString(),
+                  lastInboundTimestamp: new Date(lastInboundTimestamp).toISOString(),
+                  invariant: 'no_send_without_reply'
+                }
+              );
+              continue;
+            }
+          }
 
           // Check 5: Check sentiment of last classification
           // Conservative: Only suggest follow-up if sentiment is positive or neutral
@@ -740,6 +767,57 @@ export function createRouter(
         );
 
         // CONSERVATIVE CHECKS - Bias toward WAIT
+
+        // Check 0: INVARIANT - Prospect must have replied after our last message
+        // Belt-and-suspenders safety: No auto-suggestion if we sent last message
+        if (lead.conversationHistory && lead.conversationHistory.length > 0) {
+          const ourMessages = lead.conversationHistory.filter((m: any) => m.sender === 'user');
+          const theirMessages = lead.conversationHistory.filter((m: any) => m.sender === 'lead');
+
+          if (ourMessages.length > 0 && theirMessages.length > 0) {
+            const lastOutboundTimestamp = Math.max(...ourMessages.map((m: any) => new Date(m.timestamp).getTime()));
+            const lastInboundTimestamp = Math.max(...theirMessages.map((m: any) => new Date(m.timestamp).getTime()));
+
+            if (lastOutboundTimestamp > lastInboundTimestamp) {
+              const reasoning = 'INVARIANT VIOLATION: Our last outbound message is newer than their last reply. No suggestions allowed without human review.';
+              observability.log(
+                LogLevel.WARN,
+                LogCategory.API,
+                `WAIT decision for lead ${leadId}: INVARIANT - we sent last message`,
+                {
+                  leadId,
+                  lastOutboundTimestamp: new Date(lastOutboundTimestamp).toISOString(),
+                  lastInboundTimestamp: new Date(lastInboundTimestamp).toISOString(),
+                  invariant: 'no_send_without_reply',
+                  reasoning
+                }
+              );
+              return res.json({
+                success: true,
+                data: {
+                  action: 'WAIT',
+                  reasoning
+                }
+              });
+            }
+          } else if (theirMessages.length === 0) {
+            // No replies from prospect at all - shouldn't be suggesting follow-up
+            const reasoning = 'No replies from prospect yet. Follow-ups only appropriate after prospect has engaged.';
+            observability.log(
+              LogLevel.INFO,
+              LogCategory.API,
+              `WAIT decision for lead ${leadId}: no prospect replies`,
+              { leadId, reasoning }
+            );
+            return res.json({
+              success: true,
+              data: {
+                action: 'WAIT',
+                reasoning
+              }
+            });
+          }
+        }
 
         // Check 1: Verify state is appropriate
         if (lead.state !== LeadState.INTERESTED && lead.state !== LeadState.REPLIED) {
