@@ -34,7 +34,13 @@ Key principles:
 - Use research to demonstrate genuine interest
 - Include a clear, low-friction call to action
 - Avoid overly salesy language
-- Be authentic and human`;
+- Be authentic and human
+
+Formatting Constraint (Non-Negotiable):
+You must NOT use dashes of any kind in your output.
+This includes hyphens (-), en dashes (–), em dashes (—), and bullet points using dashes.
+If a sentence would normally use a dash, rewrite it using commas, periods, or line breaks instead.
+Before returning your final answer, scan the entire message and confirm that zero dash characters appear. If any dash appears, rewrite the message until none remain.`;
 
     // A/B variant modifications
     if (input.variant === 'A') {
