@@ -3,6 +3,7 @@ import { ClassificationController } from '../controllers/ClassificationControlle
 import { DraftFollowupTool } from '../tools/draftFollowup';
 import { IStorageService } from '../services/StorageFactory';
 import { ResearchService } from '../services/ResearchService';
+import { ScoringService } from '../services/ScoringService';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { normalizeLead, normalizeLeads } from '../utils/leadNormalizer';
 import { v4 as uuidv4 } from 'uuid';
@@ -582,6 +583,7 @@ export function createRouter(
 
   if (storageService) {
     const researchService = new ResearchService(storageService);
+    const scoringService = new ScoringService(storageService, researchService);
 
     /**
      * POST /api/leads/:leadId/research
@@ -2877,6 +2879,165 @@ export function createRouter(
       });
     }
   });
+
+  // ==================== Lead Scoring ====================
+
+  if (storageService) {
+    const researchService = new ResearchService(storageService);
+    const scoringService = new ScoringService(storageService, researchService);
+
+    /**
+     * POST /api/leads/:leadId/score
+     * Calculate lead score
+     * Body: { forceRecalculate?: boolean }
+     */
+    router.post('/leads/:leadId/score', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { forceRecalculate } = req.body;
+
+        const result = await scoringService.getLeadScore({
+          leadId,
+          forceRecalculate: forceRecalculate || false
+        });
+
+        if (!result.success) {
+          return res.status(404).json({
+            success: false,
+            error: result.error
+          });
+        }
+
+        return res.json({
+          success: true,
+          data: result.score
+        });
+
+      } catch (error) {
+        console.error('Lead scoring error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/leads/:leadId/score
+     * Get current lead score (uses cached score if available)
+     */
+    router.get('/leads/:leadId/score', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+
+        const result = await scoringService.getLeadScore({
+          leadId,
+          forceRecalculate: false
+        });
+
+        if (!result.success) {
+          return res.status(404).json({
+            success: false,
+            error: result.error
+          });
+        }
+
+        return res.json({
+          success: true,
+          data: result.score
+        });
+
+      } catch (error) {
+        console.error('Get lead score error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/leads/scores
+     * Get scores for multiple leads with filtering
+     * Query params:
+     *   - minScore: minimum overall score (0-100)
+     *   - tier: score tier (A, B, C, D, F)
+     *   - state: lead state
+     *   - sortBy: overallScore | icpFit | engagementLevel | scoredAt
+     *   - sortOrder: asc | desc
+     *   - limit: max results (default 100)
+     *   - offset: pagination offset (default 0)
+     */
+    router.get('/leads/scores', async (req: Request, res: Response) => {
+      try {
+        const {
+          minScore,
+          tier,
+          state,
+          sortBy,
+          sortOrder,
+          limit,
+          offset
+        } = req.query;
+
+        const query: any = {};
+
+        if (minScore !== undefined && typeof minScore === 'string') {
+          query.minScore = parseFloat(minScore);
+        }
+
+        if (tier && typeof tier === 'string') {
+          if (['A', 'B', 'C', 'D', 'F'].includes(tier)) {
+            query.tier = tier as 'A' | 'B' | 'C' | 'D' | 'F';
+          }
+        }
+
+        if (state && typeof state === 'string') {
+          query.state = state;
+        }
+
+        if (sortBy && typeof sortBy === 'string') {
+          if (['overallScore', 'icpFit', 'engagementLevel', 'scoredAt'].includes(sortBy)) {
+            query.sortBy = sortBy as 'overallScore' | 'icpFit' | 'engagementLevel' | 'scoredAt';
+          }
+        }
+
+        if (sortOrder && typeof sortOrder === 'string') {
+          if (['asc', 'desc'].includes(sortOrder)) {
+            query.sortOrder = sortOrder as 'asc' | 'desc';
+          }
+        }
+
+        if (limit && typeof limit === 'string') {
+          query.limit = parseInt(limit, 10);
+        }
+
+        if (offset && typeof offset === 'string') {
+          query.offset = parseInt(offset, 10);
+        }
+
+        const result = await scoringService.getBatchScores(query);
+
+        if (!result.success) {
+          return res.status(500).json({
+            success: false,
+            error: result.error
+          });
+        }
+
+        return res.json({
+          success: true,
+          total: result.total,
+          count: result.scores.length,
+          data: result.scores
+        });
+
+      } catch (error) {
+        console.error('Batch scores error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
 
   return router;
 }

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { LeadScore } from './scoring';
+import type { ResearchSnapshot as ResearchSnapshotV2 } from './research';
 
 // Intent Classification Types
 export enum Intent {
@@ -56,12 +58,15 @@ export interface Lead {
   id: string;
   name: string;
   company?: string;
+  title?: string;
   linkedinUrl?: string;
   email?: string;
   state: LeadState;
   conversationHistory: Message[];
   lastClassification?: IntentClassification;
-  research_snapshot?: ResearchSnapshot;
+  research_snapshot?: ResearchSnapshot; // Legacy field
+  researchSnapshot?: ResearchSnapshotV2; // New research format
+  score?: LeadScore; // Lead scoring data
   campaignId?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -70,12 +75,44 @@ export interface Lead {
 // Message model
 export interface Message {
   id: string;
-  leadId: string;
+  leadId?: string;
   content: string;
   sender: 'user' | 'lead';
   timestamp: Date;
   classification?: IntentClassification;
   variant?: 'A' | 'B'; // A/B testing variant
+
+  // Human approval fields
+  approved?: boolean;
+  approvedBy?: string;
+  approvedAt?: Date;
+  rejected?: boolean;
+  rejectedBy?: string;
+  rejectedAt?: Date;
+  rejectionReason?: string;
+
+  // Message editing
+  edited?: boolean;
+  originalContent?: string;
+  editedBy?: string;
+  editedAt?: Date;
+
+  // Delivery tracking
+  sent?: boolean;
+  sentAt?: Date;
+  failed?: boolean;
+  failureReason?: string;
+  source?: string; // e.g., 'linkedin_webhook', 'manual'
+
+  // Quality tracking
+  qualityRating?: number; // 1-5
+  ratedBy?: string;
+  ratedAt?: Date;
+  ratingNotes?: string;
+  flagged?: boolean;
+  flagReason?: string;
+  flaggedBy?: string;
+  flaggedAt?: Date;
 }
 
 // Classification request
