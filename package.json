@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts",
-    "start": "node dist/index.js",
+    "start": "npx drizzle-kit push:pg && node dist/index.js",
     "test": "jest",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "drizzle-kit push:pg",
@@ -14,7 +14,12 @@
     "db:studio": "drizzle-kit studio",
     "db:test": "ts-node -e \"import('./src/db/connection').then(m => m.testConnection())\""
   },
-  "keywords": ["linkedin", "intent-classification", "llm", "automation"],
+  "keywords": [
+    "linkedin",
+    "intent-classification",
+    "llm",
+    "automation"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
