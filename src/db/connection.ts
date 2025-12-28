@@ -9,6 +9,10 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
 
+// Force bypass of SSL certificate validation for self-signed certificates
+// This is often required for managed database services like Render or Supabase
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 /**
  * Database configuration from environment
  * Supports both DATABASE_URL (Render/Heroku) and individual env vars
