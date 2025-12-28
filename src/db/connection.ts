@@ -29,7 +29,10 @@ const dbConfig = process.env.DATABASE_URL
     password: process.env.DB_PASSWORD || 'postgres',
     max: parseInt(process.env.DB_POOL_MAX || '20', 10),
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000
+    connectionTimeoutMillis: 5000,
+    ssl: {
+      rejectUnauthorized: false
+    }
   };
 
 /**
