@@ -2179,6 +2179,631 @@ export function createRouter(
     });
   }
 
+  // ==================== Webhook Callbacks ====================
+
+  /**
+   * POST /api/webhooks/linkedin-reply
+   * External notification that a prospect replied on LinkedIn
+   */
+  router.post('/api/webhooks/linkedin-reply', async (req: Request, res: Response) => {
+    try {
+      const { leadId, linkedinUrl, replyContent, timestamp } = req.body;
+
+      if (!leadId || !replyContent) {
+        return res.status(400).json({
+          error: 'Missing required fields: leadId and replyContent'
+        });
+      }
+
+      if (storageService) {
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Add reply to conversation history
+        const message = {
+          id: uuidv4(),
+          content: replyContent,
+          sender: 'lead',
+          timestamp: timestamp ? new Date(timestamp) : new Date(),
+          source: 'linkedin_webhook'
+        };
+
+        if (!lead.conversationHistory) {
+          lead.conversationHistory = [];
+        }
+        lead.conversationHistory.push(message);
+
+        // Update state to REPLIED if not already more advanced
+        if (lead.state === LeadState.NEW || lead.state === LeadState.CONTACTED) {
+          lead.state = LeadState.REPLIED;
+        }
+
+        await storageService.saveLead(lead);
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `LinkedIn reply received via webhook for lead ${leadId}`,
+          { leadId, messageId: message.id }
+        );
+      }
+
+      return res.json({
+        success: true,
+        message: 'Reply processed'
+      });
+
+    } catch (error) {
+      console.error('LinkedIn reply webhook error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * POST /api/webhooks/message-sent
+   * Confirmation from HeyReach that message was sent
+   */
+  router.post('/api/webhooks/message-sent', async (req: Request, res: Response) => {
+    try {
+      const { leadId, messageId, sentAt, externalId } = req.body;
+
+      if (!leadId || !messageId) {
+        return res.status(400).json({
+          error: 'Missing required fields: leadId and messageId'
+        });
+      }
+
+      if (storageService) {
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Find and update the message
+        const message = lead.conversationHistory?.find((m: any) => m.id === messageId);
+        if (message) {
+          message.sent = true;
+          message.sentAt = sentAt ? new Date(sentAt) : new Date();
+          message.externalId = externalId;
+        }
+
+        // Update lead state
+        lead.state = LeadState.CONTACTED;
+
+        await storageService.saveLead(lead);
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Message sent confirmation received for lead ${leadId}`,
+          { leadId, messageId, externalId }
+        );
+      }
+
+      return res.json({
+        success: true,
+        message: 'Send confirmation processed'
+      });
+
+    } catch (error) {
+      console.error('Message sent webhook error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * POST /api/webhooks/message-failed
+   * Notification that message send failed
+   */
+  router.post('/api/webhooks/message-failed', async (req: Request, res: Response) => {
+    try {
+      const { leadId, messageId, error: sendError } = req.body;
+
+      if (!leadId || !messageId) {
+        return res.status(400).json({
+          error: 'Missing required fields: leadId and messageId'
+        });
+      }
+
+      if (storageService) {
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Mark message as failed
+        const message = lead.conversationHistory?.find((m: any) => m.id === messageId);
+        if (message) {
+          message.failed = true;
+          message.failedAt = new Date();
+          message.failureReason = sendError;
+        }
+
+        // Return to READY_TO_SEND for retry or keep current state
+        // Don't auto-transition on failure - require human decision
+
+        await storageService.saveLead(lead, { skipStateValidation: true });
+
+        observability.log(
+          LogLevel.WARN,
+          LogCategory.API,
+          `Message send failed for lead ${leadId}`,
+          { leadId, messageId, error: sendError }
+        );
+      }
+
+      return res.json({
+        success: true,
+        message: 'Failure recorded'
+      });
+
+    } catch (error) {
+      console.error('Message failed webhook error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  // ==================== Message Quality Rating (M5 Tracking) ====================
+
+  if (storageService) {
+    /**
+     * POST /api/messages/:messageId/rate
+     * Rate a message M1-M5 for quality tracking
+     */
+    router.post('/messages/:messageId/rate', async (req: Request, res: Response) => {
+      try {
+        const { messageId } = req.params;
+        const { rating, ratedBy, notes } = req.body;
+
+        if (!rating || !ratedBy) {
+          return res.status(400).json({
+            error: 'Missing required fields: rating (1-5) and ratedBy'
+          });
+        }
+
+        if (rating < 1 || rating > 5) {
+          return res.status(400).json({
+            error: 'Rating must be between 1 and 5'
+          });
+        }
+
+        // Find lead containing this message
+        const leads = await storageService.getLeads();
+        let foundLead = null;
+        let foundMessage = null;
+
+        for (const lead of leads) {
+          if (lead.conversationHistory) {
+            const msg = lead.conversationHistory.find((m: any) => m.id === messageId);
+            if (msg) {
+              foundLead = lead;
+              foundMessage = msg;
+              break;
+            }
+          }
+        }
+
+        if (!foundMessage) {
+          return res.status(404).json({
+            error: `Message not found: ${messageId}`
+          });
+        }
+
+        // Add rating
+        foundMessage.qualityRating = rating;
+        foundMessage.ratedBy = ratedBy;
+        foundMessage.ratedAt = new Date();
+        foundMessage.ratingNotes = notes;
+
+        await storageService.saveLead(foundLead!, { skipStateValidation: true });
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Message ${messageId} rated M${rating}`,
+          { messageId, rating, ratedBy }
+        );
+
+        return res.json({
+          success: true,
+          data: {
+            messageId,
+            rating,
+            ratedBy,
+            ratedAt: foundMessage.ratedAt
+          }
+        });
+
+      } catch (error) {
+        console.error('Rate message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/messages/rated
+     * Get all rated messages for training/analysis
+     */
+    router.get('/messages/rated', async (req: Request, res: Response) => {
+      try {
+        const { minRating, campaignId } = req.query;
+
+        let leads = await storageService.getLeads();
+
+        // Filter by campaign if provided
+        if (campaignId && typeof campaignId === 'string') {
+          leads = leads.filter(l => l.campaignId === campaignId);
+        }
+
+        const ratedMessages: any[] = [];
+
+        for (const lead of leads) {
+          if (lead.conversationHistory) {
+            for (const message of lead.conversationHistory) {
+              if (message.qualityRating) {
+                // Filter by minimum rating if provided
+                if (minRating && message.qualityRating < parseInt(minRating as string, 10)) {
+                  continue;
+                }
+
+                ratedMessages.push({
+                  messageId: message.id,
+                  leadId: lead.id,
+                  leadName: lead.name,
+                  company: lead.company,
+                  content: message.content,
+                  rating: message.qualityRating,
+                  ratedBy: message.ratedBy,
+                  ratedAt: message.ratedAt,
+                  notes: message.ratingNotes,
+                  variant: message.variant
+                });
+              }
+            }
+          }
+        }
+
+        return res.json({
+          success: true,
+          count: ratedMessages.length,
+          data: ratedMessages
+        });
+
+      } catch (error) {
+        console.error('Get rated messages error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/messages/:messageId/flag
+     * Flag a message as bad/problematic
+     */
+    router.post('/messages/:messageId/flag', async (req: Request, res: Response) => {
+      try {
+        const { messageId } = req.params;
+        const { reason, flaggedBy } = req.body;
+
+        if (!reason || !flaggedBy) {
+          return res.status(400).json({
+            error: 'Missing required fields: reason and flaggedBy'
+          });
+        }
+
+        // Find lead containing this message
+        const leads = await storageService.getLeads();
+        let foundLead = null;
+        let foundMessage = null;
+
+        for (const lead of leads) {
+          if (lead.conversationHistory) {
+            const msg = lead.conversationHistory.find((m: any) => m.id === messageId);
+            if (msg) {
+              foundLead = lead;
+              foundMessage = msg;
+              break;
+            }
+          }
+        }
+
+        if (!foundMessage) {
+          return res.status(404).json({
+            error: `Message not found: ${messageId}`
+          });
+        }
+
+        // Add flag
+        foundMessage.flagged = true;
+        foundMessage.flagReason = reason;
+        foundMessage.flaggedBy = flaggedBy;
+        foundMessage.flaggedAt = new Date();
+
+        await storageService.saveLead(foundLead!, { skipStateValidation: true });
+
+        observability.log(
+          LogLevel.WARN,
+          LogCategory.API,
+          `Message ${messageId} flagged as problematic`,
+          { messageId, reason, flaggedBy }
+        );
+
+        return res.json({
+          success: true,
+          message: 'Message flagged'
+        });
+
+      } catch (error) {
+        console.error('Flag message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== Prompt Management ====================
+
+  /**
+   * GET /api/prompts
+   * List all available prompts
+   */
+  router.get('/api/prompts', (req: Request, res: Response) => {
+    // Import prompt registry dynamically
+    const prompts = [
+      { id: 'classify_reply_v1', type: 'classify_reply', version: 'v1', description: 'Original classification prompt' },
+      { id: 'classify_reply_v2', type: 'classify_reply', version: 'v2', description: 'Enhanced classification with better intent detection' },
+      { id: 'generate_message_initial_v1', type: 'generate_message', version: 'v1', description: 'Original initial message generation' },
+      { id: 'generate_message_initial_v2', type: 'generate_message', version: 'v2', description: 'Executive-grade initial outreach (max 280 chars)' },
+      { id: 'generate_message_followup_v1', type: 'generate_message', version: 'v1', description: 'Follow-up message generation' },
+      { id: 'followup_v2', type: 'follow_up', version: 'v2', description: 'Respectful follow-ups (max 220 chars)' },
+      { id: 'followup_neutral_v1', type: 'follow_up', version: 'v1', description: 'Follow-up for neutral leads' },
+      { id: 'followup_positive_v1', type: 'follow_up', version: 'v1', description: 'Follow-up for interested leads' }
+    ];
+
+    return res.json({
+      success: true,
+      count: prompts.length,
+      data: prompts
+    });
+  });
+
+  /**
+   * GET /api/prompts/:promptId
+   * Get details for a specific prompt
+   */
+  router.get('/api/prompts/:promptId', (req: Request, res: Response) => {
+    const { promptId } = req.params;
+
+    // This would normally load from prompt registry
+    // For now, return basic info
+    return res.json({
+      success: true,
+      data: {
+        id: promptId,
+        message: 'Prompt details endpoint - integrate with prompt registry for full details'
+      }
+    });
+  });
+
+  // ==================== Bulk Operations ====================
+
+  if (storageService) {
+    /**
+     * POST /api/leads/bulk-update-state
+     * Update state for multiple leads at once
+     */
+    router.post('/leads/bulk-update-state', async (req: Request, res: Response) => {
+      try {
+        const { leadIds, newState } = req.body;
+
+        if (!Array.isArray(leadIds) || leadIds.length === 0) {
+          return res.status(400).json({
+            error: 'leadIds must be a non-empty array'
+          });
+        }
+
+        if (!newState) {
+          return res.status(400).json({
+            error: 'Missing required field: newState'
+          });
+        }
+
+        const results = {
+          updated: [] as string[],
+          failed: [] as any[]
+        };
+
+        for (const leadId of leadIds) {
+          try {
+            await storageService.updateLeadState(leadId, newState);
+            results.updated.push(leadId);
+          } catch (error) {
+            results.failed.push({
+              leadId,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          }
+        }
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Bulk state update: ${results.updated.length} updated, ${results.failed.length} failed`,
+          { newState, updatedCount: results.updated.length, failedCount: results.failed.length }
+        );
+
+        return res.json({
+          success: true,
+          data: {
+            updatedCount: results.updated.length,
+            failedCount: results.failed.length,
+            updated: results.updated,
+            failed: results.failed
+          }
+        });
+
+      } catch (error) {
+        console.error('Bulk update state error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== Campaign Execution ====================
+
+  if (storageService) {
+    /**
+     * POST /api/campaigns/:campaignId/start
+     * Activate a campaign
+     */
+    router.post('/campaigns/:campaignId/start', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+
+        const campaign = await storageService.getCampaign(campaignId);
+        if (!campaign) {
+          return res.status(404).json({
+            error: `Campaign not found: ${campaignId}`
+          });
+        }
+
+        campaign.active = true;
+        campaign.startedAt = new Date();
+
+        await storageService.saveCampaign(campaign);
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Campaign ${campaignId} started`,
+          { campaignId, campaignName: campaign.name }
+        );
+
+        return res.json({
+          success: true,
+          data: campaign
+        });
+
+      } catch (error) {
+        console.error('Start campaign error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/campaigns/:campaignId/pause
+     * Pause a campaign
+     */
+    router.post('/campaigns/:campaignId/pause', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+
+        const campaign = await storageService.getCampaign(campaignId);
+        if (!campaign) {
+          return res.status(404).json({
+            error: `Campaign not found: ${campaignId}`
+          });
+        }
+
+        campaign.active = false;
+        campaign.pausedAt = new Date();
+
+        await storageService.saveCampaign(campaign);
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Campaign ${campaignId} paused`,
+          { campaignId, campaignName: campaign.name }
+        );
+
+        return res.json({
+          success: true,
+          data: campaign
+        });
+
+      } catch (error) {
+        console.error('Pause campaign error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/campaigns/:campaignId/next-batch
+     * Get next batch of leads to contact for a campaign
+     */
+    router.get('/campaigns/:campaignId/next-batch', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.params;
+        const { limit } = req.query;
+
+        const campaign = await storageService.getCampaign(campaignId);
+        if (!campaign) {
+          return res.status(404).json({
+            error: `Campaign not found: ${campaignId}`
+          });
+        }
+
+        if (!campaign.active) {
+          return res.status(400).json({
+            error: 'Campaign is not active'
+          });
+        }
+
+        // Get QUALIFIED leads for this campaign
+        let leads = await storageService.getLeadsByCampaign(campaignId);
+        leads = leads.filter(l => l.state === LeadState.QUALIFIED);
+
+        // Apply limit
+        const batchSize = limit ? parseInt(limit as string, 10) : 10;
+        const batch = leads.slice(0, batchSize);
+
+        return res.json({
+          success: true,
+          count: batch.length,
+          totalQualified: leads.length,
+          data: batch.map(l => ({
+            id: l.id,
+            name: l.name,
+            company: l.company,
+            linkedinUrl: l.linkedinUrl,
+            state: l.state
+          }))
+        });
+
+      } catch (error) {
+        console.error('Get next batch error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
   // ==================== Observability Routes ====================
 
   /**
