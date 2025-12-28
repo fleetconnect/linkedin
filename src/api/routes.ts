@@ -1819,6 +1819,7 @@ export function createRouter(
         const { state, campaignId } = req.query;
 
         let leads = await storageService.getLeads();
+        console.log("__leads", leads);
 
         // Filter by state if provided
         if (state && typeof state === 'string') {
