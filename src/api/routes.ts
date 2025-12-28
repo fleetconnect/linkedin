@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { ClassificationController } from '../controllers/ClassificationController';
 import { DraftFollowupTool } from '../tools/draftFollowup';
 import { IStorageService } from '../services/StorageFactory';
+import { ResearchService } from '../services/ResearchService';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { normalizeLead, normalizeLeads } from '../utils/leadNormalizer';
 import { v4 as uuidv4 } from 'uuid';
@@ -570,6 +571,653 @@ export function createRouter(
 
       } catch (error) {
         console.error('Get campaign leads error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== Research Integration ====================
+
+  if (storageService) {
+    const researchService = new ResearchService(storageService);
+
+    /**
+     * POST /api/leads/:leadId/research
+     * Trigger or save research data for a lead
+     */
+    router.post('/leads/:leadId/research', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { snapshot, trigger } = req.body;
+
+        if (trigger) {
+          // Trigger new research (placeholder for Perplexity integration)
+          const result = await researchService.triggerResearch({
+            leadId,
+            linkedinUrl: req.body.linkedinUrl,
+            companyWebsite: req.body.companyWebsite,
+            additionalContext: req.body.additionalContext
+          });
+
+          return res.json({
+            success: result.success,
+            data: result
+          });
+        } else if (snapshot) {
+          // Save provided research snapshot
+          const result = await researchService.saveResearch(leadId, snapshot);
+
+          return res.json({
+            success: result.success,
+            data: result
+          });
+        } else {
+          return res.status(400).json({
+            error: 'Must provide either "trigger: true" or "snapshot" object'
+          });
+        }
+
+      } catch (error) {
+        console.error('Research error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/leads/:leadId/research
+     * Get research snapshot for a lead
+     */
+    router.get('/leads/:leadId/research', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+
+        const snapshot = await researchService.getResearch(leadId);
+
+        if (!snapshot) {
+          return res.status(404).json({
+            error: `No research data found for lead: ${leadId}`
+          });
+        }
+
+        return res.json({
+          success: true,
+          data: snapshot
+        });
+
+      } catch (error) {
+        console.error('Get research error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * PUT /api/leads/:leadId/research
+     * Update research snapshot for a lead
+     */
+    router.put('/leads/:leadId/research', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { snapshot } = req.body;
+
+        if (!snapshot) {
+          return res.status(400).json({
+            error: 'Missing required field: snapshot'
+          });
+        }
+
+        const result = await researchService.saveResearch(leadId, snapshot);
+
+        return res.json({
+          success: result.success,
+          data: result
+        });
+
+      } catch (error) {
+        console.error('Update research error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/leads/:leadId/enrichment-status
+     * Get enrichment status for a lead
+     */
+    router.get('/leads/:leadId/enrichment-status', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+
+        const status = await researchService.getEnrichmentStatus(leadId);
+
+        return res.json({
+          success: true,
+          data: status
+        });
+
+      } catch (error) {
+        console.error('Enrichment status error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== Conversation Management ====================
+
+  if (storageService) {
+    /**
+     * POST /api/leads/:leadId/messages
+     * Add a message to conversation history
+     */
+    router.post('/leads/:leadId/messages', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { content, sender, variant } = req.body;
+
+        if (!content || !sender) {
+          return res.status(400).json({
+            error: 'Missing required fields: content and sender'
+          });
+        }
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Create new message
+        const message = {
+          id: uuidv4(),
+          content,
+          sender, // 'user' or 'lead'
+          timestamp: new Date(),
+          variant: variant || undefined
+        };
+
+        // Add to conversation history
+        if (!lead.conversationHistory) {
+          lead.conversationHistory = [];
+        }
+        lead.conversationHistory.push(message);
+
+        await storageService.saveLead(lead, { skipStateValidation: true });
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Message added to lead ${leadId} conversation`,
+          { leadId, messageId: message.id, sender }
+        );
+
+        return res.json({
+          success: true,
+          data: message
+        });
+
+      } catch (error) {
+        console.error('Add message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/leads/:leadId/messages
+     * Get conversation history for a lead
+     */
+    router.get('/leads/:leadId/messages', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { limit, sender } = req.query;
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        let messages = lead.conversationHistory || [];
+
+        // Filter by sender if provided
+        if (sender && typeof sender === 'string') {
+          messages = messages.filter((m: any) => m.sender === sender);
+        }
+
+        // Sort by timestamp (newest first)
+        messages = [...messages].sort(
+          (a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+
+        // Apply limit if provided
+        if (limit && typeof limit === 'string') {
+          const limitNum = parseInt(limit, 10);
+          messages = messages.slice(0, limitNum);
+        }
+
+        return res.json({
+          success: true,
+          count: messages.length,
+          data: messages
+        });
+
+      } catch (error) {
+        console.error('Get messages error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * PUT /api/leads/:leadId/messages/:messageId
+     * Update a message in conversation history
+     */
+    router.put('/leads/:leadId/messages/:messageId', async (req: Request, res: Response) => {
+      try {
+        const { leadId, messageId } = req.params;
+        const { content, sentAt, delivered, failed } = req.body;
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        if (!lead.conversationHistory) {
+          return res.status(404).json({
+            error: `No conversation history for lead: ${leadId}`
+          });
+        }
+
+        const message = lead.conversationHistory.find((m: any) => m.id === messageId);
+        if (!message) {
+          return res.status(404).json({
+            error: `Message not found: ${messageId}`
+          });
+        }
+
+        // Update message fields
+        if (content !== undefined) message.content = content;
+        if (sentAt !== undefined) message.timestamp = new Date(sentAt);
+        if (delivered !== undefined) message.delivered = delivered;
+        if (failed !== undefined) message.failed = failed;
+
+        await storageService.saveLead(lead, { skipStateValidation: true });
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Message ${messageId} updated for lead ${leadId}`,
+          { leadId, messageId, updates: Object.keys(req.body) }
+        );
+
+        return res.json({
+          success: true,
+          data: message
+        });
+
+      } catch (error) {
+        console.error('Update message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * DELETE /api/leads/:leadId/messages/:messageId
+     * Delete a message from conversation history
+     */
+    router.delete('/leads/:leadId/messages/:messageId', async (req: Request, res: Response) => {
+      try {
+        const { leadId, messageId } = req.params;
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        if (!lead.conversationHistory) {
+          return res.status(404).json({
+            error: `No conversation history for lead: ${leadId}`
+          });
+        }
+
+        const messageIndex = lead.conversationHistory.findIndex((m: any) => m.id === messageId);
+        if (messageIndex === -1) {
+          return res.status(404).json({
+            error: `Message not found: ${messageId}`
+          });
+        }
+
+        lead.conversationHistory.splice(messageIndex, 1);
+        await storageService.saveLead(lead, { skipStateValidation: true });
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Message ${messageId} deleted from lead ${leadId}`,
+          { leadId, messageId }
+        );
+
+        return res.json({
+          success: true,
+          message: 'Message deleted'
+        });
+
+      } catch (error) {
+        console.error('Delete message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== Human Approval Flow ====================
+
+  if (storageService) {
+    /**
+     * POST /api/leads/:leadId/approve-message
+     * Approve a suggested message for sending
+     * This respects the Human Approval Boundary by requiring explicit approval
+     */
+    router.post('/leads/:leadId/approve-message', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { messageId, approvedBy } = req.body;
+
+        if (!approvedBy) {
+          return res.status(400).json({
+            error: 'Missing required field: approvedBy (operator name/email)'
+          });
+        }
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Find the suggested message in conversation history
+        const message = messageId
+          ? lead.conversationHistory?.find((m: any) => m.id === messageId)
+          : lead.conversationHistory?.slice(-1)[0]; // Latest message if no ID provided
+
+        if (!message) {
+          return res.status(404).json({
+            error: 'No message found to approve'
+          });
+        }
+
+        // Mark as approved
+        message.approved = true;
+        message.approvedBy = approvedBy;
+        message.approvedAt = new Date();
+
+        // Update lead state to READY_TO_SEND
+        lead.state = LeadState.READY_TO_SEND;
+
+        await storageService.saveLead(lead);
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Message approved for lead ${leadId}`,
+          { leadId, messageId: message.id, approvedBy }
+        );
+
+        return res.json({
+          success: true,
+          data: {
+            leadId,
+            messageId: message.id,
+            state: lead.state,
+            message: message.content,
+            approvedBy,
+            approvedAt: message.approvedAt
+          }
+        });
+
+      } catch (error) {
+        console.error('Approve message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/leads/:leadId/reject-message
+     * Reject a suggested message
+     */
+    router.post('/leads/:leadId/reject-message', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { messageId, rejectedBy, reason } = req.body;
+
+        if (!rejectedBy) {
+          return res.status(400).json({
+            error: 'Missing required field: rejectedBy (operator name/email)'
+          });
+        }
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Find the message
+        const message = messageId
+          ? lead.conversationHistory?.find((m: any) => m.id === messageId)
+          : lead.conversationHistory?.slice(-1)[0];
+
+        if (!message) {
+          return res.status(404).json({
+            error: 'No message found to reject'
+          });
+        }
+
+        // Mark as rejected
+        message.rejected = true;
+        message.rejectedBy = rejectedBy;
+        message.rejectedAt = new Date();
+        message.rejectionReason = reason;
+
+        // Keep lead in current state (don't change state on rejection)
+        // Operator can manually update state if needed
+
+        await storageService.saveLead(lead, { skipStateValidation: true });
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Message rejected for lead ${leadId}`,
+          { leadId, messageId: message.id, rejectedBy, reason }
+        );
+
+        return res.json({
+          success: true,
+          data: {
+            leadId,
+            messageId: message.id,
+            state: lead.state,
+            rejectedBy,
+            rejectedAt: message.rejectedAt,
+            reason
+          }
+        });
+
+      } catch (error) {
+        console.error('Reject message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/leads/:leadId/edit-message
+     * Edit and approve a suggested message
+     */
+    router.post('/leads/:leadId/edit-message', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { messageId, editedContent, editedBy } = req.body;
+
+        if (!editedContent || !editedBy) {
+          return res.status(400).json({
+            error: 'Missing required fields: editedContent and editedBy'
+          });
+        }
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Find the message
+        const message = messageId
+          ? lead.conversationHistory?.find((m: any) => m.id === messageId)
+          : lead.conversationHistory?.slice(-1)[0];
+
+        if (!message) {
+          return res.status(404).json({
+            error: 'No message found to edit'
+          });
+        }
+
+        // Store original content
+        message.originalContent = message.content;
+
+        // Update with edited content
+        message.content = editedContent;
+        message.edited = true;
+        message.editedBy = editedBy;
+        message.editedAt = new Date();
+
+        // Approve the edited message
+        message.approved = true;
+        message.approvedBy = editedBy;
+        message.approvedAt = new Date();
+
+        // Update lead state
+        lead.state = LeadState.READY_TO_SEND;
+
+        await storageService.saveLead(lead);
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Message edited and approved for lead ${leadId}`,
+          { leadId, messageId: message.id, editedBy }
+        );
+
+        return res.json({
+          success: true,
+          data: {
+            leadId,
+            messageId: message.id,
+            state: lead.state,
+            originalContent: message.originalContent,
+            editedContent: message.content,
+            editedBy,
+            editedAt: message.editedAt
+          }
+        });
+
+      } catch (error) {
+        console.error('Edit message error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * GET /api/leads/pending-approval
+     * Get all leads with messages awaiting human approval
+     */
+    router.get('/leads/pending-approval', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.query;
+
+        let leads = await storageService.getLeads();
+
+        // Filter by campaign if provided
+        if (campaignId && typeof campaignId === 'string') {
+          leads = leads.filter(l => l.campaignId === campaignId);
+        }
+
+        // Find leads with unapproved messages
+        const pending = leads
+          .filter(lead => {
+            // Check if lead has suggested messages that need approval
+            if (!lead.conversationHistory || lead.conversationHistory.length === 0) {
+              return false;
+            }
+
+            // Get last message
+            const lastMessage = lead.conversationHistory[lead.conversationHistory.length - 1];
+
+            // Check if it's from us and not yet approved/rejected
+            return (
+              lastMessage.sender === 'user' &&
+              !lastMessage.approved &&
+              !lastMessage.rejected
+            );
+          })
+          .map(lead => {
+            const lastMessage = lead.conversationHistory![lead.conversationHistory!.length - 1];
+
+            return {
+              leadId: lead.id,
+              leadName: lead.name,
+              company: lead.company,
+              state: lead.state,
+              messageId: lastMessage.id,
+              suggestedMessage: lastMessage.content,
+              suggestedAt: lastMessage.timestamp,
+              classification: lead.lastClassification,
+              conversationHistory: lead.conversationHistory
+            };
+          });
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Found ${pending.length} leads pending approval`,
+          { count: pending.length, campaignId: campaignId || 'all' }
+        );
+
+        return res.json({
+          success: true,
+          count: pending.length,
+          data: pending
+        });
+
+      } catch (error) {
+        console.error('Pending approval error:', error);
         return res.status(500).json({
           error: error instanceof Error ? error.message : 'Internal server error'
         });
