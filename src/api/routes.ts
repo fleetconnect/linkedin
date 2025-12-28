@@ -3,6 +3,7 @@ import { ClassificationController } from '../controllers/ClassificationControlle
 import { DraftFollowupTool } from '../tools/draftFollowup';
 import { IStorageService } from '../services/StorageFactory';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
+import { normalizeLead, normalizeLeads } from '../utils/leadNormalizer';
 import { v4 as uuidv4 } from 'uuid';
 import observability, { LogLevel, LogCategory } from '../services/ObservabilityService';
 import { LeadState, Intent, Sentiment } from '../types';
@@ -266,6 +267,111 @@ export function createRouter(
 
       } catch (error) {
         console.error('Import leads error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/leads/:leadId/normalize
+     * Normalize lead data (name, email, LinkedIn URL, etc.)
+     */
+    router.post('/leads/:leadId/normalize', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+
+        const lead = await storageService.getLead(leadId);
+        if (!lead) {
+          return res.status(404).json({
+            error: `Lead not found: ${leadId}`
+          });
+        }
+
+        // Normalize the lead data
+        const { lead: normalizedLead, result } = normalizeLead(lead);
+
+        // Save if changes were made
+        if (result.normalized) {
+          await storageService.saveLead(normalizedLead, { skipStateValidation: true });
+
+          observability.log(
+            LogLevel.INFO,
+            LogCategory.API,
+            `Lead ${leadId} normalized`,
+            { leadId, changes: result.changes }
+          );
+        }
+
+        return res.json({
+          success: true,
+          data: {
+            leadId: normalizedLead.id,
+            normalized: result.normalized,
+            changes: result.changes,
+            lead: normalizedLead
+          }
+        });
+
+      } catch (error) {
+        console.error('Normalize lead error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+
+    /**
+     * POST /api/leads/normalize-all
+     * Normalize all leads in the database
+     * Query params: ?campaignId=xxx (optional - normalize only leads in campaign)
+     */
+    router.post('/leads/normalize-all', async (req: Request, res: Response) => {
+      try {
+        const { campaignId } = req.query;
+
+        let leads = await storageService.getLeads();
+
+        // Filter by campaign if provided
+        if (campaignId && typeof campaignId === 'string') {
+          leads = leads.filter(l => l.campaignId === campaignId);
+        }
+
+        const results = normalizeLeads(leads);
+        const changedLeads = results.filter(r => r.result.normalized);
+
+        // Save all changed leads
+        for (const { lead: normalizedLead } of changedLeads) {
+          await storageService.saveLead(normalizedLead, { skipStateValidation: true });
+        }
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Batch normalization complete: ${changedLeads.length} of ${leads.length} leads updated`,
+          {
+            totalLeads: leads.length,
+            normalizedCount: changedLeads.length,
+            campaignId: campaignId || 'all'
+          }
+        );
+
+        return res.json({
+          success: true,
+          data: {
+            totalLeads: leads.length,
+            normalizedCount: changedLeads.length,
+            unchangedCount: leads.length - changedLeads.length,
+            changes: changedLeads.map(r => ({
+              leadId: r.lead.id,
+              leadName: r.lead.name,
+              changes: r.result.changes
+            }))
+          }
+        });
+
+      } catch (error) {
+        console.error('Normalize all leads error:', error);
         return res.status(500).json({
           error: error instanceof Error ? error.message : 'Internal server error'
         });
