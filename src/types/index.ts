@@ -186,3 +186,64 @@ export interface HookResult {
   data?: any;
   error?: string;
 }
+
+// ==================== Message Generation API Response Types ====================
+
+/**
+ * Binary status for message validation
+ */
+export type MessageValidationStatus = 'PASS' | 'FAIL';
+
+/**
+ * Response from message generation endpoints (initial & follow-up)
+ * CRITICAL: status determines whether message is ready to send
+ */
+export interface MessageGenerationResponse {
+  status: MessageValidationStatus;
+  data: {
+    leadId: string;
+    messageId?: string;      // Only present on PASS
+    content?: string;        // Only present on PASS
+    variant?: 'A' | 'B';     // Only present on PASS
+    state: LeadState;        // READY_TO_SEND on PASS, LOST on FAIL
+  };
+  reason?: string;           // Only present on FAIL - explains why validation failed
+  validationErrors?: Array<{ // Only present on FAIL - detailed validation errors
+    rule: string;
+    actual: any;
+    expected: any;
+    severity: 'error' | 'warning';
+  }>;
+}
+
+/**
+ * Successful message generation (PASS)
+ */
+export interface MessageGenerationSuccess {
+  status: 'PASS';
+  data: {
+    leadId: string;
+    messageId: string;
+    content: string;
+    variant: 'A' | 'B';
+    state: 'READY_TO_SEND';
+  };
+}
+
+/**
+ * Failed message generation (FAIL)
+ */
+export interface MessageGenerationFailure {
+  status: 'FAIL';
+  data: {
+    leadId: string;
+    state: 'LOST';
+  };
+  reason: string;
+  validationErrors: Array<{
+    rule: string;
+    actual: any;
+    expected: any;
+    severity: 'error' | 'warning';
+  }>;
+}

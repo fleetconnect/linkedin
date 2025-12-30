@@ -4,11 +4,16 @@
  */
 
 import { IStorageService } from './StorageFactory';
+import { PerplexityService } from './PerplexityService';
 import { ResearchSnapshot, ResearchResult, ResearchInput, EnrichmentStatus } from '../types/research';
 import observability, { LogLevel, LogCategory } from './ObservabilityService';
 
 export class ResearchService {
-  constructor(private storage: IStorageService) {}
+  private perplexityService: PerplexityService;
+
+  constructor(private storage: IStorageService) {
+    this.perplexityService = new PerplexityService();
+  }
 
   /**
    * Store research snapshot for a lead
@@ -137,8 +142,8 @@ export class ResearchService {
   }
 
   /**
-   * Trigger research for a lead (placeholder for Perplexity integration)
-   * Currently returns mock data - replace with actual Perplexity API call
+   * Trigger research for a lead using Perplexity
+   * Performs company research and validates tier completeness
    */
   async triggerResearch(input: ResearchInput): Promise<ResearchResult> {
     const startTime = Date.now();
@@ -153,31 +158,102 @@ export class ResearchService {
         };
       }
 
+      // Determine company name for research
+      const companyName = lead.company || input.companyWebsite;
+      if (!companyName) {
+        return {
+          success: false,
+          leadId: input.leadId,
+          error: 'Company name or website required for research'
+        };
+      }
+
       observability.log(
         LogLevel.INFO,
         LogCategory.API,
-        `Triggering research for lead ${input.leadId}`,
-        { leadId: input.leadId, linkedinUrl: input.linkedinUrl }
+        `Triggering Perplexity research for lead ${input.leadId}`,
+        { leadId: input.leadId, company: companyName }
       );
 
-      // TODO: Replace with actual Perplexity API integration
-      // For now, create a placeholder snapshot using available lead data
+      // Call Perplexity to research the company
+      const perplexityData = await this.perplexityService.researchCompany(
+        companyName,
+        input.additionalContext
+      );
+
+      // Build research snapshot by merging Perplexity data with lead data
       const snapshot: ResearchSnapshot = {
+        // Tier 1 fields (basic)
         firstName: lead.name?.split(' ')[0],
-        company: lead.company,
+        company: perplexityData.companyName || lead.company,
         title: lead.title,
+        industryNiche: perplexityData.industry,
+
+        // Tier 2 fields (from Perplexity)
+        // Note: Perplexity doesn't provide these, but we structure for future enrichment
+        yearsExperience: undefined,
+        credentials: undefined,
+        recentContentTopics: undefined,
+
+        // Tier 3 fields (from Perplexity)
+        companyDescription: perplexityData.companyDescription,
+        companyPositioning: undefined, // Requires deeper analysis
+        targetAudience: undefined,
+        problemsTheySolve: perplexityData.keyProducts, // Proxy for problems
+        recentNews: perplexityData.recentNews,
+        challenges: perplexityData.challenges,
+        opportunities: perplexityData.opportunities,
+
+        // Metadata
         researchedAt: new Date(),
-        source: 'manual',
-        confidence: 0.5 // Low confidence for placeholder data
+        source: 'perplexity',
+        confidence: this.calculateResearchConfidence(perplexityData)
       };
+
+      // Validate tier 1 completeness
+      const tier1Validation = this.validateTier1Completeness(snapshot);
+
+      if (!tier1Validation.complete) {
+        observability.log(
+          LogLevel.WARN,
+          LogCategory.API,
+          `Tier 1 research incomplete for lead ${input.leadId}`,
+          {
+            leadId: input.leadId,
+            missingFields: tier1Validation.missingFields
+          }
+        );
+      }
 
       // Save the research
-      const result = await this.saveResearch(input.leadId, snapshot);
+      const saveResult = await this.saveResearch(input.leadId, snapshot);
+
+      // Assess quality tier
+      const qualityTier = this.assessResearchQuality(snapshot);
+
+      observability.log(
+        LogLevel.INFO,
+        LogCategory.API,
+        `Research completed for lead ${input.leadId}`,
+        {
+          leadId: input.leadId,
+          tier: qualityTier,
+          tier1Complete: tier1Validation.complete,
+          confidence: snapshot.confidence,
+          durationMs: Date.now() - startTime
+        }
+      );
 
       return {
-        ...result,
+        success: true,
+        leadId: input.leadId,
+        snapshot,
+        tier1Complete: tier1Validation.complete,
+        missingFields: tier1Validation.missingFields,
+        researchQuality: qualityTier,
         durationMs: Date.now() - startTime
       };
+
     } catch (error) {
       observability.log(
         LogLevel.ERROR,
@@ -193,6 +269,62 @@ export class ResearchService {
         durationMs: Date.now() - startTime
       };
     }
+  }
+
+  /**
+   * Validate Tier 1 completeness (required fields)
+   */
+  private validateTier1Completeness(snapshot: ResearchSnapshot): {
+    complete: boolean;
+    missingFields: string[];
+  } {
+    const requiredFields = ['firstName', 'company', 'title', 'industryNiche'];
+    const missingFields: string[] = [];
+
+    for (const field of requiredFields) {
+      const value = (snapshot as any)[field];
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        missingFields.push(field);
+      }
+    }
+
+    return {
+      complete: missingFields.length === 0,
+      missingFields
+    };
+  }
+
+  /**
+   * Calculate research confidence based on data completeness
+   */
+  private calculateResearchConfidence(perplexityData: any): number {
+    let score = 0;
+    let maxScore = 0;
+
+    // Check key fields
+    const fields = [
+      'companyName',
+      'companyDescription',
+      'industry',
+      'recentNews',
+      'keyProducts',
+      'challenges',
+      'opportunities'
+    ];
+
+    for (const field of fields) {
+      maxScore++;
+      const value = perplexityData[field];
+      if (value && (typeof value !== 'string' || value.trim() !== '')) {
+        if (Array.isArray(value)) {
+          score += value.length > 0 ? 1 : 0;
+        } else {
+          score += 1;
+        }
+      }
+    }
+
+    return maxScore > 0 ? score / maxScore : 0;
   }
 
   /**

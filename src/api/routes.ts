@@ -10,6 +10,14 @@ import { PerplexityService } from '../services/PerplexityService';
 import { LLMService } from '../services/LLMService';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { normalizeLead, normalizeLeads } from '../utils/leadNormalizer';
+import {
+  validateMessage,
+  getValidationSummary,
+  formatValidationErrors,
+  INITIAL_MESSAGE_RULES,
+  FOLLOWUP_MESSAGE_RULES
+} from '../utils/messageValidator';
+import { sendValidationFailAlert } from '../utils/slackNotifier';
 import { v4 as uuidv4 } from 'uuid';
 import observability, { LogLevel, LogCategory } from '../services/ObservabilityService';
 import { LeadState, Intent, Sentiment, Message } from '../types';
@@ -1281,7 +1289,17 @@ export function createRouter(
   if (storageService) {
     /**
      * POST /api/leads/:leadId/generate-initial
-     * Generate initial outreach message for a lead
+     * Generate initial outreach message for a lead with STRICT VALIDATION
+     *
+     * CRITICAL: Returns binary PASS/FAIL status
+     * - PASS: Sets state to READY_TO_SEND
+     * - FAIL: Sets state to GENERATION_FAILED, sends Slack alert
+     *
+     * Validation rules (hard requirements):
+     * - No dashes (—, –, -)
+     * - No line breaks
+     * - Word count: 20-40 words
+     * - No CTA (observational only)
      */
     router.post('/leads/:leadId/generate-initial', async (req: Request, res: Response) => {
       try {
@@ -1318,6 +1336,15 @@ export function createRouter(
           customPrompt
         );
 
+        // ✅ CRITICAL: Validate message (PASS/FAIL gate)
+        const validationResult = validateMessage(
+          generatedMessage,
+          INITIAL_MESSAGE_RULES,
+          'initial'
+        );
+
+        const validationSummary = getValidationSummary(validationResult);
+
         // Create message object
         const message: Message = {
           id: uuidv4(),
@@ -1333,25 +1360,103 @@ export function createRouter(
         }
         lead.conversationHistory.push(message);
 
-        // Save updated lead
-        await storageService.saveLead(lead, { skipStateValidation: true });
+        // ⚠️ CRITICAL DECISION POINT: PASS or FAIL
+        if (validationSummary.status === 'PASS') {
+          // ✅ PASS: Set READY_TO_SEND
+          lead.state = LeadState.READY_TO_SEND;
 
-        observability.log(
-          LogLevel.INFO,
-          LogCategory.API,
-          `Initial message generated and saved for lead ${leadId}`,
-          { leadId, messageId: message.id, campaignId: cId }
-        );
+          await storageService.saveLead(lead, { skipStateValidation: true });
 
-        return res.json({
-          success: true,
-          data: {
+          observability.log(
+            LogLevel.INFO,
+            LogCategory.API,
+            `✅ PASS: Initial message validated and ready to send for lead ${leadId}`,
+            {
+              leadId,
+              messageId: message.id,
+              campaignId: cId,
+              status: 'PASS',
+              state: 'READY_TO_SEND'
+            }
+          );
+
+          return res.json({
+            status: 'PASS',
+            data: {
+              leadId,
+              messageId: message.id,
+              content: message.content,
+              variant: message.variant,
+              state: 'READY_TO_SEND'
+            }
+          });
+
+        } else {
+          // ❌ FAIL: Set GENERATION_FAILED
+          lead.state = LeadState.LOST; // Using LOST for failed generation (or create new state)
+
+          await storageService.saveLead(lead, { skipStateValidation: true });
+
+          const failureReason = validationSummary.failureReason || 'Unknown validation failure';
+
+          observability.log(
+            LogLevel.ERROR,
+            LogCategory.API,
+            `❌ FAIL: Message validation failed for lead ${leadId}`,
+            {
+              leadId,
+              messageId: message.id,
+              campaignId: cId,
+              status: 'FAIL',
+              state: 'LOST',
+              errorCount: validationSummary.errorCount,
+              warningCount: validationSummary.warningCount,
+              reason: failureReason
+            }
+          );
+
+          // 🔔 Send Slack alert
+          await sendValidationFailAlert({
             leadId,
-            messageId: message.id,
-            content: message.content,
-            variant: message.variant
-          }
-        });
+            leadName: lead.name || 'Unknown',
+            campaignId: cId,
+            reason: failureReason,
+            messageContent: generatedMessage,
+            errorCount: validationSummary.errorCount,
+            warningCount: validationSummary.warningCount,
+            validationErrors: validationResult.errors
+          });
+
+          // Also log to console for visibility
+          console.error(`
+╔════════════════════════════════════════════════╗
+║  ❌ MESSAGE VALIDATION FAILED                 ║
+╠════════════════════════════════════════════════╣
+║  Lead: ${lead.name} (${leadId})
+║  Campaign: ${cId}
+║  Message ID: ${message.id}
+║
+║  Errors: ${validationSummary.errorCount}
+║  Warnings: ${validationSummary.warningCount}
+║
+║  Reason:
+${failureReason.split('\n').map(line => `║  ${line}`).join('\n')}
+║
+║  Generated Message:
+║  "${generatedMessage}"
+╚════════════════════════════════════════════════╝
+          `);
+
+          return res.json({
+            status: 'FAIL',
+            data: {
+              leadId,
+              state: 'LOST'
+            },
+            reason: failureReason,
+            validationErrors: validationResult.errors
+          });
+        }
 
       } catch (error) {
         console.error('Generate initial message error:', error);

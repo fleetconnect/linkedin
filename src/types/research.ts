@@ -44,6 +44,9 @@ export interface ResearchResult {
   error?: string;
   tokensUsed?: number;
   durationMs?: number;
+  tier1Complete?: boolean;
+  missingFields?: string[];
+  researchQuality?: 'tier1' | 'tier2' | 'tier3';
 }
 
 export interface EnrichmentStatus {
