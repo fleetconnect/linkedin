@@ -113,13 +113,23 @@ Key principles:
 - Use research to demonstrate genuine interest
 - Include a clear, low-friction call to action
 - Avoid overly salesy language
-- Be authentic and human`;
+- Be authentic and human
 
-    // A/B variant modifications
+⚠️ CRITICAL VALIDATION RULES FOR INITIAL MESSAGES:
+When generating an "initial" message type, you MUST follow these STRICT rules:
+1. Exactly 20-40 words (count every word!)
+2. Absolutely NO dashes of any kind (-, –, —)
+3. NO line breaks - must be a single continuous paragraph
+4. NO call-to-action - be purely observational (no questions, no "open to", no "would you", no "?")
+5. Make a specific, genuine observation about their work/company
+
+These rules are ENFORCED by automated validation. Messages that violate ANY rule will be rejected.`;
+
+    // A/B variant modifications (still must follow strict rules for initial messages)
     if (variant === 'A') {
-      basePrompt += `\n\n[Variant A: Lead with a question or insight]`;
+      basePrompt += `\n\n[Variant A: For initial messages, lead with an insight about their recent work/achievement]`;
     } else if (variant === 'B') {
-      basePrompt += `\n\n[Variant B: Lead with a value proposition]`;
+      basePrompt += `\n\n[Variant B: For initial messages, lead with an observation about their company/industry]`;
     }
 
     return basePrompt;
@@ -131,12 +141,15 @@ Key principles:
   private getMessageGuidelines(campaign: Campaign, messageType: string): string {
     const guidelines: Record<string, string> = {
       initial: `
-Guidelines for initial message:
-- Start with a specific insight or observation about their company
-- Briefly mention how you can help with their challenges
-- End with a simple question or soft CTA (e.g., "Would you be open to a brief conversation?")
-- Keep it under 100 words
-- Do NOT use generic templates or obvious flattery`,
+Guidelines for initial message (STRICT RULES - MUST FOLLOW):
+- CRITICAL: Must be 20-40 words ONLY (count carefully!)
+- CRITICAL: NO dashes of any kind (-, –, —)
+- CRITICAL: NO line breaks - single paragraph only
+- CRITICAL: NO call-to-action (no questions, no "open to", no "would you", no "?")
+- Be purely OBSERVATIONAL - make a specific insight about their company/work
+- Sound natural and conversational, like a genuine observation
+- Do NOT use generic templates or obvious flattery
+- Example tone: "I noticed your team's recent work on X. The approach to Y seems really innovative given the challenges in Z."`,
 
       'follow-up': `
 Guidelines for follow-up message:
