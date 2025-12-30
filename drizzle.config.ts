@@ -3,8 +3,11 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-// Force SSL bypass for migrations
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// Print DATABASE_URL for debugging (safely masked)
+const maskedUrl = process.env.DATABASE_URL
+  ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':****@')
+  : 'NOT FOUND';
+console.log(`🏗️  Drizzle Push URL: ${maskedUrl}`);
 
 export default {
   schema: './src/db/schema.ts',

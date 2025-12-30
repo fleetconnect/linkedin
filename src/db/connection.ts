@@ -9,32 +9,31 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
 
+// Print DATABASE_URL for debugging (safely masked)
+const maskedUrl = process.env.DATABASE_URL
+  ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':****@')
+  : 'NOT FOUND';
+console.log(`🔌 Database URL: ${maskedUrl}`);
+
 const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * Database configuration from environment
  * optimized for Neon and other managed PostgreSQL providers.
  */
-const dbConfig = process.env.DATABASE_URL
-  ? {
-    connectionString: process.env.DATABASE_URL,
-    // Neon requires SSL. rejectUnauthorized: false is common for managed DBs
-    ssl: { rejectUnauthorized: false },
-    max: parseInt(process.env.DB_POOL_MAX || '10', 10), // Neon suggests smaller pools for serverless
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000
-  }
-  : {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    database: process.env.DB_NAME || 'linkedin_outreach',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    max: parseInt(process.env.DB_POOL_MAX || '10', 10),
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
-  };
+if (!process.env.DATABASE_URL) {
+  console.error('❌ FATAL: DATABASE_URL is not defined in environment variables.');
+  process.exit(1);
+}
+
+const dbConfig = {
+  connectionString: process.env.DATABASE_URL,
+  // Neon requires SSL. rejectUnauthorized: false is common for managed DBs
+  ssl: { rejectUnauthorized: false },
+  max: parseInt(process.env.DB_POOL_MAX || '10', 10),
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000
+};
 
 /**
  * PostgreSQL connection pool
