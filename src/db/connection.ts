@@ -8,7 +8,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
-
+import fs from 'fs';
 // Print DATABASE_URL for debugging (safely masked)
 const maskedUrl = process.env.DATABASE_URL
   ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':****@')
@@ -29,10 +29,13 @@ if (!process.env.DATABASE_URL) {
 const dbConfig = {
   connectionString: process.env.DATABASE_URL,
   // Neon requires SSL. rejectUnauthorized: false is common for managed DBs
-  ssl: { rejectUnauthorized: false },
-  max: parseInt(process.env.DB_POOL_MAX || '10', 10),
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000
+  ssl: {
+    ca: fs.readFileSync('ca-certificate.crt', 'utf-8'), // path to the downloaded .crt
+    rejectUnauthorized: true,   // keep true to validate the server cert
+  },
+  // max: parseInt(process.env.DB_POOL_MAX || '10', 10),
+  // idleTimeoutMillis: 30000,
+  // connectionTimeoutMillis: 5000
 };
 
 /**
