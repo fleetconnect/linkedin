@@ -47,6 +47,36 @@ export function createRouter(
   });
 
   /**
+   * POST /api/leads/:leadId/classify-reply
+   * Classify a message reply for a specific lead
+   */
+  router.post('/leads/:leadId/classify-reply', async (req: Request, res: Response) => {
+    try {
+      const { leadId } = req.params;
+      const { messageContent } = req.body;
+
+      if (!messageContent) {
+        return res.status(400).json({
+          error: 'Missing required field: messageContent'
+        });
+      }
+
+      const result = await controller.classifyReply(leadId, messageContent);
+
+      return res.json({
+        success: true,
+        data: result
+      });
+
+    } catch (error) {
+      console.error('Lead classification error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
    * POST /api/classify/batch
    * Classify multiple message replies
    */
