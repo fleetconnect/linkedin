@@ -9,19 +9,18 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
 
-// Force bypass of SSL certificate validation for self-signed certificates
-// This is often required for managed database services like Render or Supabase
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * Database configuration from environment
- * Supports both DATABASE_URL (Render/Heroku) and individual env vars
+ * optimized for Neon and other managed PostgreSQL providers.
  */
 const dbConfig = process.env.DATABASE_URL
   ? {
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }, // Common requirement for managed DBs like Render/Heroku
-    max: parseInt(process.env.DB_POOL_MAX || '20', 10),
+    // Neon requires SSL. rejectUnauthorized: false is common for managed DBs
+    ssl: { rejectUnauthorized: false },
+    max: parseInt(process.env.DB_POOL_MAX || '10', 10), // Neon suggests smaller pools for serverless
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000
   }
@@ -31,12 +30,10 @@ const dbConfig = process.env.DATABASE_URL
     database: process.env.DB_NAME || 'linkedin_outreach',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
-    max: parseInt(process.env.DB_POOL_MAX || '20', 10),
+    max: parseInt(process.env.DB_POOL_MAX || '10', 10),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
-    ssl: {
-      rejectUnauthorized: false
-    }
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
   };
 
 /**

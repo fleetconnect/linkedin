@@ -1,6 +1,3 @@
-// Force bypass of SSL certificate validation globally for self-signed certificates
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 import express from 'express';
 import dotenv from 'dotenv';
 import { LLMService } from './services/LLMService';
