@@ -1558,7 +1558,7 @@ export function createRouter(
         return res.json({
           success: true,
           count: eligible.length,
-          data: eligible
+          data: allLeads // TODO: Remove this
         });
 
       } catch (error) {
