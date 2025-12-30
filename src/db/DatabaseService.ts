@@ -185,6 +185,18 @@ export class DatabaseService {
       }
     }
 
+    // Ensure campaign exists if campaignId is provided
+    if (lead.campaignId) {
+      const campaignExists = await this.getCampaign(lead.campaignId);
+      if (!campaignExists) {
+        await this.createCampaign({
+          id: lead.campaignId,
+          name: `Campaign ${lead.campaignId}`,
+          messaging_rules: {}
+        });
+      }
+    }
+
     // Upsert lead (TRANSACTIONAL)
     const [savedLead] = await db
       .insert(schema.leads)
@@ -370,6 +382,18 @@ export class DatabaseService {
     email?: string;
     campaignId?: string;
   }): Promise<LeadType> {
+    // Ensure campaign exists if campaignId is provided
+    if (data.campaignId) {
+      const campaignExists = await this.getCampaign(data.campaignId);
+      if (!campaignExists) {
+        await this.createCampaign({
+          id: data.campaignId,
+          name: `Campaign ${data.campaignId}`,
+          messaging_rules: {}
+        });
+      }
+    }
+
     const [lead] = await db
       .insert(schema.leads)
       .values({
@@ -517,6 +541,13 @@ export class DatabaseService {
         name: data.name,
         messaging_rules: data.messaging_rules as any,
         active: true
+      })
+      .onConflictDoUpdate({
+        target: schema.campaigns.id,
+        set: {
+          name: data.name,
+          updated_at: new Date()
+        }
       })
       .returning();
 
