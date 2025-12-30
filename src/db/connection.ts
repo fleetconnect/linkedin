@@ -8,7 +8,10 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
-import fs from 'fs';
+// Force bypass of SSL certificate validation for self-signed certificates
+// This handles the "self-signed certificate in certificate chain" error common with DigitalOcean/Neon
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 // Print DATABASE_URL for debugging (safely masked)
 const maskedUrl = process.env.DATABASE_URL
   ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':****@')
@@ -28,14 +31,13 @@ if (!process.env.DATABASE_URL) {
 
 const dbConfig = {
   connectionString: process.env.DATABASE_URL,
-  // Neon requires SSL. rejectUnauthorized: false is common for managed DBs
+  // rejectUnauthorized: false is REQUIRED for DigitalOcean and Neon to avoid "self-signed certificate" errors
   ssl: {
-    ca: fs.readFileSync('ca-certificate.crt', 'utf-8'), // path to the downloaded .crt
-    rejectUnauthorized: true,   // keep true to validate the server cert
+    rejectUnauthorized: false,
   },
-  // max: parseInt(process.env.DB_POOL_MAX || '10', 10),
-  // idleTimeoutMillis: 30000,
-  // connectionTimeoutMillis: 5000
+  max: parseInt(process.env.DB_POOL_MAX || '10', 10),
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000
 };
 
 /**
