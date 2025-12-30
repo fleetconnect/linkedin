@@ -1,5 +1,5 @@
 import { PerplexityService } from '../services/PerplexityService';
-import { StorageService } from '../services/StorageService';
+import { IStorageService } from '../services/StorageFactory';
 import {
   Lead,
   ResearchSnapshot,
@@ -20,9 +20,9 @@ import observability from '../services/ObservabilityService';
  */
 export class ResearchCompanyTool {
   private perplexityService: PerplexityService;
-  private storageService: StorageService;
+  private storageService: IStorageService;
 
-  constructor(perplexityService: PerplexityService, storageService: StorageService) {
+  constructor(perplexityService: PerplexityService, storageService: IStorageService) {
     this.perplexityService = perplexityService;
     this.storageService = storageService;
   }

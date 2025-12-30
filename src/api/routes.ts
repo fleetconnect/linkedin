@@ -1,14 +1,18 @@
 import { Router, Request, Response } from 'express';
 import { ClassificationController } from '../controllers/ClassificationController';
 import { DraftFollowupTool } from '../tools/draftFollowup';
+import { ResearchCompanyTool } from '../tools/researchCompany';
 import { IStorageService } from '../services/StorageFactory';
 import { ResearchService } from '../services/ResearchService';
 import { ScoringService } from '../services/ScoringService';
+import { MessageGenerationService } from '../services/MessageGenerationService';
+import { PerplexityService } from '../services/PerplexityService';
+import { LLMService } from '../services/LLMService';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { normalizeLead, normalizeLeads } from '../utils/leadNormalizer';
 import { v4 as uuidv4 } from 'uuid';
 import observability, { LogLevel, LogCategory } from '../services/ObservabilityService';
-import { LeadState, Intent, Sentiment } from '../types';
+import { LeadState, Intent, Sentiment, Message } from '../types';
 
 export function createRouter(
   controller: ClassificationController,
@@ -16,6 +20,22 @@ export function createRouter(
   storageService?: IStorageService
 ): Router {
   const router = Router();
+
+  // Initialize common services with shared scope
+  let researchService: ResearchService | undefined;
+  let scoringService: ScoringService | undefined;
+  let messageGenerationService: MessageGenerationService | undefined;
+
+  if (storageService) {
+    researchService = new ResearchService(storageService);
+    scoringService = new ScoringService(storageService, researchService);
+
+    // Initialize Message Generation Infrastructure
+    const perplexityService = new PerplexityService();
+    const researchTool = new ResearchCompanyTool(perplexityService, storageService);
+    const llmService = new LLMService();
+    messageGenerationService = new MessageGenerationService(researchTool, llmService);
+  }
 
   /**
    * POST /api/classify
@@ -612,8 +632,7 @@ export function createRouter(
   // ==================== Research Integration ====================
 
   if (storageService) {
-    const researchService = new ResearchService(storageService);
-    const scoringService = new ScoringService(storageService, researchService);
+    // Services are initialized at the top level of createRouter
 
     /**
      * POST /api/leads/:leadId/research
@@ -626,7 +645,7 @@ export function createRouter(
 
         if (trigger) {
           // Trigger new research (placeholder for Perplexity integration)
-          const result = await researchService.triggerResearch({
+          const result = await researchService!.triggerResearch({
             leadId,
             linkedinUrl: req.body.linkedinUrl,
             companyWebsite: req.body.companyWebsite,
@@ -639,7 +658,7 @@ export function createRouter(
           });
         } else if (snapshot) {
           // Save provided research snapshot
-          const result = await researchService.saveResearch(leadId, snapshot);
+          const result = await researchService!.saveResearch(leadId, snapshot);
 
           return res.json({
             success: result.success,
@@ -667,7 +686,7 @@ export function createRouter(
       try {
         const { leadId } = req.params;
 
-        const snapshot = await researchService.getResearch(leadId);
+        const snapshot = await researchService!.getResearch(leadId);
 
         if (!snapshot) {
           return res.status(404).json({
@@ -703,7 +722,7 @@ export function createRouter(
           });
         }
 
-        const result = await researchService.saveResearch(leadId, snapshot);
+        const result = await researchService!.saveResearch(leadId, snapshot);
 
         return res.json({
           success: result.success,
@@ -726,7 +745,7 @@ export function createRouter(
       try {
         const { leadId } = req.params;
 
-        const status = await researchService.getEnrichmentStatus(leadId);
+        const status = await researchService!.getEnrichmentStatus(leadId);
 
         return res.json({
           success: true,
@@ -1292,10 +1311,46 @@ export function createRouter(
         }
 
         // Generate message using MessageGenerationService
-        // Note: This requires MessageGenerationService to be available
-        // For now, return a placeholder - you'll wire this up
-        return res.status(501).json({
-          error: 'Message generation not yet wired to API. Implement MessageGenerationService integration.'
+        const generatedMessage = await messageGenerationService!.generateMessage(
+          lead as any,
+          campaign as any,
+          'initial',
+          customPrompt
+        );
+
+        // Create message object
+        const message: Message = {
+          id: uuidv4(),
+          content: generatedMessage,
+          sender: 'user',
+          timestamp: new Date(),
+          variant: campaign.messaging_rules.prompt_variant
+        };
+
+        // Add to lead's conversation history
+        if (!lead.conversationHistory) {
+          lead.conversationHistory = [];
+        }
+        lead.conversationHistory.push(message);
+
+        // Save updated lead
+        await storageService.saveLead(lead, { skipStateValidation: true });
+
+        observability.log(
+          LogLevel.INFO,
+          LogCategory.API,
+          `Initial message generated and saved for lead ${leadId}`,
+          { leadId, messageId: message.id, campaignId: cId }
+        );
+
+        return res.json({
+          success: true,
+          data: {
+            leadId,
+            messageId: message.id,
+            content: message.content,
+            variant: message.variant
+          }
         });
 
       } catch (error) {
@@ -2960,7 +3015,7 @@ export function createRouter(
       try {
         const { leadId } = req.params;
 
-        const result = await scoringService.getLeadScore({
+        const result = await scoringService!.getLeadScore({
           leadId,
           forceRecalculate: false
         });
@@ -3045,7 +3100,7 @@ export function createRouter(
           query.offset = parseInt(offset, 10);
         }
 
-        const result = await scoringService.getBatchScores(query);
+        const result = await scoringService!.getBatchScores(query);
 
         if (!result.success) {
           return res.status(500).json({
