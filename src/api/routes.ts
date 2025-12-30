@@ -8,6 +8,7 @@ import { ScoringService } from '../services/ScoringService';
 import { MessageGenerationService } from '../services/MessageGenerationService';
 import { PerplexityService } from '../services/PerplexityService';
 import { LLMService } from '../services/LLMService';
+import { UnipileService } from '../services/UnipileService';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { normalizeLead, normalizeLeads } from '../utils/leadNormalizer';
 import {
@@ -3229,6 +3230,432 @@ ${failureReason.split('\n').map(line => `║  ${line}`).join('\n')}
       }
     });
   }
+
+  // ==================== Unipile Integration (LinkedIn Message Sending) ====================
+
+  /**
+   * POST /api/unipile/send
+   * Send a LinkedIn message via Unipile (direct)
+   */
+  router.post('/unipile/send', async (req: Request, res: Response) => {
+    try {
+      const { accountId, recipientLinkedInUrl, chatId, message } = req.body;
+
+      if (!message) {
+        return res.status(400).json({
+          error: 'Missing required field: message'
+        });
+      }
+
+      if (!recipientLinkedInUrl && !chatId) {
+        return res.status(400).json({
+          error: 'Either recipientLinkedInUrl or chatId is required'
+        });
+      }
+
+      const unipileService = new UnipileService();
+
+      let unipileAccountId = accountId;
+
+      if (!unipileAccountId) {
+        const accounts = await unipileService.getAccounts();
+        if (!accounts || accounts.length === 0) {
+          return res.status(400).json({
+            error: 'No Unipile accounts available. Please connect a LinkedIn account first.'
+          });
+        }
+        unipileAccountId = accounts[0].id || accounts[0].account_id;
+      }
+
+      const result = await unipileService.sendMessage(
+        unipileAccountId,
+        { recipientLinkedInUrl, chatId },
+        message
+      );
+
+      if (!result.success) {
+        return res.status(500).json({
+          success: false,
+          error: result.error || 'Failed to send message via Unipile'
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          chatId: result.chatId,
+          messageId: result.messageId
+        }
+      });
+    } catch (error) {
+      console.error('Direct send message error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * POST /api/send-message
+   * Send a LinkedIn message via Unipile
+   * 
+   * This is the execution boundary - transitions lead from READY_TO_SEND to CONTACTED
+   */
+  router.post('/send-message', async (req: Request, res: Response) => {
+    try {
+      const { leadId, accountId, message } = req.body;
+
+      // Validate required fields
+      if (!leadId) {
+        return res.status(400).json({
+          error: 'Missing required field: leadId'
+        });
+      }
+
+      if (!message) {
+        return res.status(400).json({
+          error: 'Missing required field: message'
+        });
+      }
+
+      // Get lead from storage
+      if (!storageService) {
+        return res.status(500).json({
+          error: 'Storage service not initialized'
+        });
+      }
+
+      const lead = await storageService.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({
+          error: `Lead not found: ${leadId}`
+        });
+      }
+
+      // Verify lead is in READY_TO_SEND state
+      if (lead.state !== LeadState.READY_TO_SEND) {
+        return res.status(400).json({
+          error: `Lead must be in READY_TO_SEND state. Current state: ${lead.state}`
+        });
+      }
+
+      // Verify lead has LinkedIn URL
+      if (!lead.linkedinUrl) {
+        return res.status(400).json({
+          error: 'Lead does not have a LinkedIn URL'
+        });
+      }
+
+      // Initialize Unipile service
+      const unipileService = new UnipileService();
+
+      // Determine which account to use
+      let unipileAccountId = accountId;
+
+      if (!unipileAccountId) {
+        // If no account specified, get the first available account
+        const accounts = await unipileService.getAccounts();
+        if (!accounts || accounts.length === 0) {
+          return res.status(400).json({
+            error: 'No Unipile accounts available. Please connect a LinkedIn account first.'
+          });
+        }
+        unipileAccountId = accounts[0].id || accounts[0].account_id;
+      }
+
+      // Send the message via Unipile
+      const result = await unipileService.sendMessage(
+        unipileAccountId,
+        lead.linkedinUrl,
+        message
+      );
+
+      if (!result.success) {
+        observability.log(
+          LogLevel.ERROR,
+          LogCategory.API,
+          `Failed to send message via Unipile for lead ${leadId}`,
+          { leadId, error: result.error }
+        );
+
+        return res.status(500).json({
+          success: false,
+          error: result.error || 'Failed to send message via Unipile'
+        });
+      }
+
+      // ✅ Message sent successfully - update lead state
+      const previousState = lead.state;
+      lead.state = LeadState.CONTACTED;
+
+      // Add message to conversation history with delivery info
+      const messageObj: Message = {
+        id: uuidv4(),
+        content: message,
+        sender: 'user',
+        timestamp: new Date(),
+        delivered: true,
+        unipileChatId: result.chatId,
+        unipileMessageId: result.messageId
+      };
+
+      if (!lead.conversationHistory) {
+        lead.conversationHistory = [];
+      }
+      lead.conversationHistory.push(messageObj);
+
+      // Save updated lead
+      await storageService.saveLead(lead);
+
+      observability.log(
+        LogLevel.INFO,
+        LogCategory.API,
+        `✅ Message sent successfully via Unipile for lead ${leadId}`,
+        {
+          leadId,
+          previousState,
+          newState: LeadState.CONTACTED,
+          chatId: result.chatId,
+          messageId: result.messageId
+        }
+      );
+
+      return res.json({
+        success: true,
+        data: {
+          leadId,
+          state: lead.state,
+          previousState,
+          chatId: result.chatId,
+          messageId: result.messageId,
+          message: messageObj
+        }
+      });
+
+    } catch (error) {
+      console.error('Send message error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * GET /api/unipile/accounts
+   * Get all connected Unipile LinkedIn accounts
+   */
+  router.get('/unipile/accounts', async (req: Request, res: Response) => {
+    try {
+      const unipileService = new UnipileService();
+      const accounts = await unipileService.getAccounts();
+
+      return res.json({
+        success: true,
+        count: accounts.length,
+        data: accounts
+      });
+
+    } catch (error) {
+      console.error('Get Unipile accounts error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * GET /api/unipile/accounts/:accountId
+   * Get a specific Unipile account
+   */
+  router.get('/unipile/accounts/:accountId', async (req: Request, res: Response) => {
+    try {
+      const { accountId } = req.params;
+      const unipileService = new UnipileService();
+      const account = await unipileService.getAccount(accountId);
+
+      return res.json({
+        success: true,
+        data: account
+      });
+
+    } catch (error) {
+      console.error('Get Unipile account error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * GET /api/unipile/chats/:chatId/messages
+   * Get messages from a Unipile chat
+   */
+  router.get('/unipile/chats/:chatId/messages', async (req: Request, res: Response) => {
+    try {
+      const { chatId } = req.params;
+      const { limit } = req.query;
+
+      const unipileService = new UnipileService();
+      const messages = await unipileService.getChatMessages(
+        chatId,
+        limit ? parseInt(limit as string, 10) : 50
+      );
+
+      return res.json({
+        success: true,
+        count: messages.length,
+        data: messages
+      });
+
+    } catch (error) {
+      console.error('Get chat messages error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * POST /api/leads/:leadId/send-ready-message
+   * Send the ready-to-send message for a lead
+   * Convenience endpoint that uses the last message in conversation history
+   */
+  router.post('/leads/:leadId/send-ready-message', async (req: Request, res: Response) => {
+    try {
+      const { leadId } = req.params;
+      const { accountId } = req.body;
+
+      if (!storageService) {
+        return res.status(500).json({
+          error: 'Storage service not initialized'
+        });
+      }
+
+      const lead = await storageService.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({
+          error: `Lead not found: ${leadId}`
+        });
+      }
+
+      // Verify lead is in READY_TO_SEND state
+      if (lead.state !== LeadState.READY_TO_SEND) {
+        return res.status(400).json({
+          error: `Lead must be in READY_TO_SEND state. Current state: ${lead.state}`
+        });
+      }
+
+      // Get the last message from conversation history
+      if (!lead.conversationHistory || lead.conversationHistory.length === 0) {
+        return res.status(400).json({
+          error: 'No messages in conversation history'
+        });
+      }
+
+      const lastMessage = lead.conversationHistory[lead.conversationHistory.length - 1];
+
+      // Verify it's from us and not already sent
+      if (lastMessage.sender !== 'user') {
+        return res.status(400).json({
+          error: 'Last message is not from user'
+        });
+      }
+
+      if (lastMessage.delivered) {
+        return res.status(400).json({
+          error: 'Last message already delivered'
+        });
+      }
+
+      // Verify lead has LinkedIn URL
+      if (!lead.linkedinUrl) {
+        return res.status(400).json({
+          error: 'Lead does not have a LinkedIn URL'
+        });
+      }
+
+      // Initialize Unipile service
+      const unipileService = new UnipileService();
+
+      // Determine which account to use
+      let unipileAccountId = accountId;
+
+      if (!unipileAccountId) {
+        const accounts = await unipileService.getAccounts();
+        if (!accounts || accounts.length === 0) {
+          return res.status(400).json({
+            error: 'No Unipile accounts available. Please connect a LinkedIn account first.'
+          });
+        }
+        unipileAccountId = accounts[0].id || accounts[0].account_id;
+      }
+
+      // Send the message via Unipile
+      const result = await unipileService.sendMessage(
+        unipileAccountId,
+        lead.linkedinUrl,
+        lastMessage.content
+      );
+
+      if (!result.success) {
+        observability.log(
+          LogLevel.ERROR,
+          LogCategory.API,
+          `Failed to send ready message via Unipile for lead ${leadId}`,
+          { leadId, error: result.error }
+        );
+
+        return res.status(500).json({
+          success: false,
+          error: result.error || 'Failed to send message via Unipile'
+        });
+      }
+
+      // ✅ Message sent successfully - update lead state and message
+      const previousState = lead.state;
+      lead.state = LeadState.CONTACTED;
+
+      // Update the message with delivery info
+      lastMessage.delivered = true;
+      lastMessage.sentAt = new Date();
+      lastMessage.unipileChatId = result.chatId;
+      lastMessage.unipileMessageId = result.messageId;
+
+      // Save updated lead
+      await storageService.saveLead(lead);
+
+      observability.log(
+        LogLevel.INFO,
+        LogCategory.API,
+        `✅ Ready message sent successfully via Unipile for lead ${leadId}`,
+        {
+          leadId,
+          previousState,
+          newState: LeadState.CONTACTED,
+          chatId: result.chatId,
+          messageId: result.messageId
+        }
+      );
+
+      return res.json({
+        success: true,
+        data: {
+          leadId,
+          state: lead.state,
+          previousState,
+          chatId: result.chatId,
+          messageId: result.messageId,
+          message: lastMessage
+        }
+      });
+
+    } catch (error) {
+      console.error('Send ready message error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
 
   return router;
 }

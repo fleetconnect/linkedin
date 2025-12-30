@@ -100,9 +100,14 @@ export interface Message {
   // Delivery tracking
   sent?: boolean;
   sentAt?: Date;
+  delivered?: boolean; // Unipile delivery confirmation
   failed?: boolean;
   failureReason?: string;
   source?: string; // e.g., 'linkedin_webhook', 'manual'
+
+  // Unipile integration
+  unipileChatId?: string;
+  unipileMessageId?: string;
 
   // Quality tracking
   qualityRating?: number; // 1-5
