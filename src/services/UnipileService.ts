@@ -78,17 +78,41 @@ export class UnipileService {
         error?: string;
     }> {
         try {
+            console.log('[UnipileService.sendMessage] start', {
+                accountId,
+                recipientType: typeof recipientLinkedInUrlOrOptions,
+                hasMessage: Boolean(message),
+                messageLength: typeof message === 'string' ? message.length : undefined
+            });
+
             const options =
                 typeof recipientLinkedInUrlOrOptions === 'string'
                     ? { recipientLinkedInUrl: recipientLinkedInUrlOrOptions }
                     : recipientLinkedInUrlOrOptions;
 
+            console.log('[UnipileService.sendMessage] normalized options', {
+                hasRecipientLinkedInUrl: Boolean(options.recipientLinkedInUrl),
+                recipientLinkedInUrl: options.recipientLinkedInUrl,
+                hasChatId: Boolean(options.chatId),
+                chatId: options.chatId
+            });
+
             let chatId = options.chatId;
 
             if (!chatId) {
                 if (!options.recipientLinkedInUrl) {
+                    console.error('[UnipileService.sendMessage] missing recipient', {
+                        accountId,
+                        options
+                    });
                     throw new Error('Either chatId or recipientLinkedInUrl is required');
                 }
+
+                console.log('[UnipileService.sendMessage] creating/getting chat', {
+                    endpoint: `${this.baseUrl}/api/v1/chats`,
+                    accountId,
+                    recipientLinkedInUrl: options.recipientLinkedInUrl
+                });
 
                 const chatResponse = await this.client.post('/api/v1/chats', {
                     account_id: accountId,
@@ -99,17 +123,35 @@ export class UnipileService {
                     ]
                 });
 
+                console.log('[UnipileService.sendMessage] chat response received', {
+                    status: chatResponse.status,
+                    data: chatResponse.data
+                });
+
                 chatId =
                     chatResponse.data?.id ||
                     chatResponse.data?.chat_id ||
                     chatResponse.data?.chatId ||
                     chatResponse.data?.data?.id ||
                     chatResponse.data?.data?.chat_id;
+
+                console.log('[UnipileService.sendMessage] extracted chatId', { chatId });
             }
 
             if (!chatId) {
+                console.error('[UnipileService.sendMessage] chatId missing after chat resolution', {
+                    accountId,
+                    options
+                });
                 throw new Error('Failed to create or retrieve chat');
             }
+
+            console.log('[UnipileService.sendMessage] sending message', {
+                endpoint: `${this.baseUrl}/api/v1/chats/${chatId}/messages`,
+                accountId,
+                chatId,
+                messagePreview: typeof message === 'string' ? message.slice(0, 80) : undefined
+            });
 
             // Now send the message to the chat
             const messageResponse = await this.client.post(
@@ -120,21 +162,38 @@ export class UnipileService {
                 }
             );
 
+            console.log('[UnipileService.sendMessage] message response received', {
+                status: messageResponse.status,
+                data: messageResponse.data
+            });
+
+            const messageId =
+                messageResponse.data?.id ||
+                messageResponse.data?.message_id ||
+                messageResponse.data?.messageId ||
+                messageResponse.data?.data?.id ||
+                messageResponse.data?.data?.message_id;
+
+            console.log('[UnipileService.sendMessage] extracted messageId', { messageId });
+
             return {
                 success: true,
                 chatId,
-                messageId:
-                    messageResponse.data?.id ||
-                    messageResponse.data?.message_id ||
-                    messageResponse.data?.messageId ||
-                    messageResponse.data?.data?.id ||
-                    messageResponse.data?.data?.message_id
+                messageId
             };
 
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 const errorMessage = error.response?.data?.message || error.message;
-                console.error('Unipile send message error:', errorMessage);
+                console.error('[UnipileService.sendMessage] axios error', {
+                    message: errorMessage,
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    responseData: error.response?.data,
+                    method: error.config?.method,
+                    url: error.config?.url,
+                    baseURL: error.config?.baseURL
+                });
                 return {
                     success: false,
                     error: errorMessage
@@ -142,7 +201,7 @@ export class UnipileService {
             }
 
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            console.error('Unipile send message error:', errorMsg);
+            console.error('[UnipileService.sendMessage] non-axios error', errorMsg);
             return {
                 success: false,
                 error: errorMsg
