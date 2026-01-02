@@ -156,12 +156,19 @@ export class UnipileService {
 
                     const first = candidates[0];
                     const resolvedAttendeeId: string | undefined =
+                        // Attempt to resolve attendee ID from various possible fields returned by Unipile search
                         first?.provider_messaging_id ||
                         first?.providerMessagingId ||
                         first?.messaging?.id ||
                         first?.messaging_id ||
                         first?.messagingId ||
-                        first?.id;
+                        // Fallback to generic ID fields if specific messaging IDs are missing
+                        first?.id ||
+                        // Additional fallback: check nested profile or contact objects
+                        first?.profile?.provider_messaging_id ||
+                        first?.contact?.provider_messaging_id ||
+                        first?.profile?.id ||
+                        first?.contact?.id;
 
                     console.log('[UnipileService.sendMessage] resolved attendee id', {
                         resolvedAttendeeId,
