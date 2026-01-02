@@ -3239,7 +3239,7 @@ ${failureReason.split('\n').map(line => `║  ${line}`).join('\n')}
    */
   router.post('/unipile/send', async (req: Request, res: Response) => {
     try {
-      const { accountId, recipientLinkedInUrl, chatId, message } = req.body;
+      const { accountId, recipientLinkedInUrl, chatId, attendeeId, attendeesIds, message } = req.body;
 
       if (!message) {
         return res.status(400).json({
@@ -3247,9 +3247,9 @@ ${failureReason.split('\n').map(line => `║  ${line}`).join('\n')}
         });
       }
 
-      if (!recipientLinkedInUrl && !chatId) {
+      if (!recipientLinkedInUrl && !chatId && !attendeeId && !attendeesIds) {
         return res.status(400).json({
-          error: 'Either recipientLinkedInUrl or chatId is required'
+          error: 'Either recipientLinkedInUrl, chatId, attendeeId, or attendeesIds is required'
         });
       }
 
@@ -3269,7 +3269,7 @@ ${failureReason.split('\n').map(line => `║  ${line}`).join('\n')}
 
       const result = await unipileService.sendMessage(
         unipileAccountId,
-        { recipientLinkedInUrl, chatId },
+        { recipientLinkedInUrl, chatId, attendeeId, attendeesIds },
         message
       );
 

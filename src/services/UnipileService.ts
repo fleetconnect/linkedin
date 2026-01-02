@@ -69,7 +69,14 @@ export class UnipileService {
      */
     async sendMessage(
         accountId: string,
-        recipientLinkedInUrlOrOptions: string | { recipientLinkedInUrl?: string; chatId?: string },
+        recipientLinkedInUrlOrOptions:
+            | string
+            | {
+                recipientLinkedInUrl?: string;
+                chatId?: string;
+                attendeeId?: string;
+                attendeesIds?: string[];
+            },
         message: string
     ): Promise<{
         success: boolean;
@@ -94,33 +101,96 @@ export class UnipileService {
                 hasRecipientLinkedInUrl: Boolean(options.recipientLinkedInUrl),
                 recipientLinkedInUrl: options.recipientLinkedInUrl,
                 hasChatId: Boolean(options.chatId),
-                chatId: options.chatId
+                chatId: options.chatId,
+                hasAttendeeId: Boolean((options as any).attendeeId),
+                attendeeId: (options as any).attendeeId,
+                attendeesIds: (options as any).attendeesIds
             });
 
             let chatId = options.chatId;
 
             if (!chatId) {
-                if (!options.recipientLinkedInUrl) {
+                const attendeesIdsFromOptions: string[] | undefined = Array.isArray((options as any).attendeesIds)
+                    ? (options as any).attendeesIds
+                    : (options as any).attendeeId
+                        ? [(options as any).attendeeId]
+                        : undefined;
+
+                let attendeesIds: string[] | undefined = attendeesIdsFromOptions;
+
+                if (!attendeesIds || attendeesIds.length === 0) {
+                    if (!options.recipientLinkedInUrl) {
+                        console.error('[UnipileService.sendMessage] missing recipient', {
+                            accountId,
+                            options
+                        });
+                        throw new Error('Either chatId, attendeesIds/attendeeId, or recipientLinkedInUrl is required');
+                    }
+
+                    console.log('[UnipileService.sendMessage] resolving attendee id via user search', {
+                        endpoint: `${this.baseUrl}/api/v1/users/search`,
+                        accountId,
+                        query: options.recipientLinkedInUrl
+                    });
+
+                    const searchResponse = await this.client.get('/api/v1/users/search', {
+                        params: {
+                            account_id: accountId,
+                            q: options.recipientLinkedInUrl
+                        }
+                    });
+
+                    console.log('[UnipileService.sendMessage] user search response received', {
+                        status: searchResponse.status,
+                        data: searchResponse.data
+                    });
+
+                    const searchData: any = searchResponse.data;
+                    const candidates: any[] = Array.isArray(searchData)
+                        ? searchData
+                        : Array.isArray(searchData?.data)
+                            ? searchData.data
+                            : Array.isArray(searchData?.items)
+                                ? searchData.items
+                                : [];
+
+                    const first = candidates[0];
+                    const resolvedAttendeeId: string | undefined =
+                        first?.provider_messaging_id ||
+                        first?.providerMessagingId ||
+                        first?.messaging?.id ||
+                        first?.messaging_id ||
+                        first?.messagingId ||
+                        first?.id;
+
+                    console.log('[UnipileService.sendMessage] resolved attendee id', {
+                        resolvedAttendeeId,
+                        candidateCount: candidates.length
+                    });
+
+                    if (resolvedAttendeeId) {
+                        attendeesIds = [resolvedAttendeeId];
+                    }
+                }
+
+                if (!attendeesIds || attendeesIds.length === 0) {
                     console.error('[UnipileService.sendMessage] missing recipient', {
                         accountId,
                         options
                     });
-                    throw new Error('Either chatId or recipientLinkedInUrl is required');
+                    throw new Error('Unable to resolve attendee id. Provide attendeeId/attendeesIds from Unipile, or verify search results.');
                 }
 
                 console.log('[UnipileService.sendMessage] creating/getting chat', {
                     endpoint: `${this.baseUrl}/api/v1/chats`,
                     accountId,
-                    recipientLinkedInUrl: options.recipientLinkedInUrl
+                    recipientLinkedInUrl: options.recipientLinkedInUrl,
+                    attendeesIds
                 });
 
                 const chatResponse = await this.client.post('/api/v1/chats', {
                     account_id: accountId,
-                    attendees: [
-                        {
-                            linkedin_url: options.recipientLinkedInUrl
-                        }
-                    ]
+                    attendees_ids: attendeesIds
                 });
 
                 console.log('[UnipileService.sendMessage] chat response received', {
