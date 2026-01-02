@@ -146,13 +146,17 @@ export class UnipileService {
                     });
 
                     const searchData: any = searchResponse.data;
-                    const candidates: any[] = Array.isArray(searchData)
-                        ? searchData
-                        : Array.isArray(searchData?.data)
-                            ? searchData.data
-                            : Array.isArray(searchData?.items)
-                                ? searchData.items
-                                : [];
+                    let candidates: any[] = [];
+                    if (Array.isArray(searchData)) {
+                        candidates = searchData;
+                    } else if (Array.isArray(searchData?.data)) {
+                        candidates = searchData.data;
+                    } else if (Array.isArray(searchData?.items)) {
+                        candidates = searchData.items;
+                    } else if (searchData && typeof searchData === 'object') {
+                        // Single object result, wrap it in an array
+                        candidates = [searchData];
+                    }
 
                     const first = candidates[0];
                     const resolvedAttendeeId: string | undefined =
@@ -168,7 +172,10 @@ export class UnipileService {
                         first?.profile?.provider_messaging_id ||
                         first?.contact?.provider_messaging_id ||
                         first?.profile?.id ||
-                        first?.contact?.id;
+                        first?.contact?.id ||
+                        // Unipile may return LinkedIn specific identifiers
+                        first?.member_urn ||
+                        first?.provider_id;
 
                     console.log('[UnipileService.sendMessage] resolved attendee id', {
                         resolvedAttendeeId,
