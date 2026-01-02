@@ -161,6 +161,9 @@ export class UnipileService {
                     const first = candidates[0];
                     const resolvedAttendeeId: string | undefined =
                         // Attempt to resolve attendee ID from various possible fields returned by Unipile search
+                        // Prefer provider internal ID (provider_id) for LinkedIn chats
+                        first?.provider_id ||
+                        // Fallback to provider messaging IDs if available
                         first?.provider_messaging_id ||
                         first?.providerMessagingId ||
                         first?.messaging?.id ||
@@ -174,8 +177,7 @@ export class UnipileService {
                         first?.profile?.id ||
                         first?.contact?.id ||
                         // Unipile may return LinkedIn specific identifiers
-                        first?.member_urn ||
-                        first?.provider_id;
+                        first?.member_urn;
 
                     console.log('[UnipileService.sendMessage] resolved attendee id', {
                         resolvedAttendeeId,
