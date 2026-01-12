@@ -9,6 +9,8 @@ import { MessageGenerationService } from '../services/MessageGenerationService';
 import { PerplexityService } from '../services/PerplexityService';
 import { LLMService } from '../services/LLMService';
 import { UnipileService } from '../services/UnipileService';
+import { HeyReachService } from '../services/HeyReachService';
+import { HeyReachMCPService } from '../services/HeyReachMCPService';
 import { compareVariants, formatComparison } from '../utils/variantAnalytics';
 import { normalizeLead, normalizeLeads } from '../utils/leadNormalizer';
 import {
@@ -43,8 +45,15 @@ export function createRouter(
     const perplexityService = new PerplexityService();
     const researchTool = new ResearchCompanyTool(perplexityService, storageService);
     const llmService = new LLMService();
+
     messageGenerationService = new MessageGenerationService(researchTool, llmService);
   }
+
+  // Initialize HeyReach Service
+  const heyReachService = new HeyReachService();
+  
+  // Initialize HeyReach MCP Service
+  const heyReachMCPService = new HeyReachMCPService();
 
   /**
    * POST /api/classify
@@ -3652,6 +3661,319 @@ ${failureReason.split('\n').map(line => `║  ${line}`).join('\n')}
     } catch (error) {
       console.error('Send ready message error:', error);
       return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  // ==================== HeyReach Integration ====================
+
+  /**
+   * POST /api/heyreach/leads
+   * Create a lead in HeyReach
+   */
+  router.post('/heyreach/leads', async (req: Request, res: Response) => {
+    try {
+      const { linkedinProfileUrl, firstName, lastName, company, email, customFields } = req.body;
+
+      if (!linkedinProfileUrl) {
+        return res.status(400).json({
+          error: 'Missing required field: linkedinProfileUrl'
+        });
+      }
+
+      const result = await heyReachService.createLead({
+        linkedinProfileUrl,
+        firstName,
+        lastName,
+        company,
+        email,
+        customFields
+      });
+
+      if (!result.success) {
+        return res.status(500).json({
+          error: result.error || 'Failed to create HeyReach lead'
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: { id: result.id }
+      });
+
+    } catch (error) {
+      console.error('HeyReach create lead error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * POST /api/heyreach/campaigns/:campaignId/leads
+   * Add a lead to a HeyReach campaign
+   */
+  router.post('/heyreach/campaigns/:campaignId/leads', async (req: Request, res: Response) => {
+    try {
+      const { campaignId } = req.params;
+      const { leadId } = req.body; // HeyReach internal Lead ID (from create step)
+
+      if (!leadId) {
+        return res.status(400).json({
+          error: 'Missing required field: leadId'
+        });
+      }
+
+      const result = await heyReachService.addLeadToCampaign(campaignId, leadId);
+
+      if (!result.success) {
+        return res.status(500).json({
+          error: result.error || 'Failed to add lead to campaign'
+        });
+      }
+
+      return res.json({
+        success: true
+      });
+
+    } catch (error) {
+      console.error('HeyReach add to campaign error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * GET /api/heyreach/campaigns
+   * Get all HeyReach campaigns
+   */
+  router.get('/heyreach/campaigns', async (req: Request, res: Response) => {
+    try {
+      const campaigns = await heyReachService.getCampaigns();
+      return res.json({
+        success: true,
+        data: campaigns
+      });
+    } catch (error) {
+      console.error('HeyReach get campaigns error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * POST /api/leads/:leadId/score
+   * Scoring endpoint for n8n workflow
+   */
+  if (scoringService) {
+    router.post('/leads/:leadId/score', async (req: Request, res: Response) => {
+      try {
+        const { leadId } = req.params;
+        const { forceRecalculate } = req.body;
+
+        const result = await scoringService!.getLeadScore({
+          leadId,
+          forceRecalculate: forceRecalculate === true
+        });
+
+        if (!result.success) {
+          return res.status(500).json({
+            error: result.error || 'Failed to score lead'
+          });
+        }
+
+        return res.json({
+          success: true,
+          data: result.score
+        });
+
+      } catch (error) {
+        console.error('Scoring error:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
+    });
+  }
+
+  // ==================== HeyReach MCP Integration ====================
+
+  /**
+   * GET /api/mcp/health
+   * Health check for HeyReach MCP connection
+   */
+  router.get('/mcp/health', async (req: Request, res: Response) => {
+    try {
+      const health = await heyReachMCPService.healthCheck();
+      return res.json(health);
+    } catch (error) {
+      console.error('MCP health check error:', error);
+      return res.status(500).json({
+        healthy: false,
+        message: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * GET /api/mcp/info
+   * Get HeyReach MCP server info
+   */
+  router.get('/mcp/info', async (req: Request, res: Response) => {
+    try {
+      const serverInfo = await heyReachMCPService.getServerInfo();
+      return res.json({
+        success: true,
+        data: serverInfo
+      });
+    } catch (error) {
+      console.error('MCP server info error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * GET /api/mcp/tools
+   * List available MCP tools from HeyReach
+   */
+  router.get('/mcp/tools', async (req: Request, res: Response) => {
+    try {
+      const tools = await heyReachMCPService.listTools();
+      return res.json({
+        success: true,
+        data: tools
+      });
+    } catch (error) {
+      console.error('MCP list tools error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * POST /api/mcp/tools/call
+   * Call an MCP tool
+   * 
+   * Body: { tool: "tool_name", arguments: { ... } }
+   * 
+   * This is the main endpoint for n8n to call HeyReach MCP tools
+   */
+  router.post('/mcp/tools/call', async (req: Request, res: Response) => {
+    try {
+      const { tool, arguments: args } = req.body;
+
+      if (!tool) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required field: tool'
+        });
+      }
+
+      const result = await heyReachMCPService.callTool(tool, args || {});
+      
+      return res.json({
+        success: !result.isError,
+        data: result
+      });
+
+    } catch (error) {
+      console.error('MCP tool call error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * POST /api/mcp/raw
+   * Execute a raw MCP request (for advanced usage)
+   * 
+   * Body: { method: "method_name", params: { ... } }
+   */
+  router.post('/mcp/raw', async (req: Request, res: Response) => {
+    try {
+      const { method, params } = req.body;
+
+      if (!method) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required field: method'
+        });
+      }
+
+      const result = await heyReachMCPService.rawRequest(method, params || {});
+      
+      return res.json({
+        success: true,
+        data: result
+      });
+
+    } catch (error) {
+      console.error('MCP raw request error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * GET /api/mcp/resources
+   * List available MCP resources
+   */
+  router.get('/mcp/resources', async (req: Request, res: Response) => {
+    try {
+      const resources = await heyReachMCPService.listResources();
+      return res.json({
+        success: true,
+        data: resources
+      });
+    } catch (error) {
+      console.error('MCP list resources error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
+    }
+  });
+
+  /**
+   * POST /api/mcp/resources/read
+   * Read an MCP resource by URI
+   * 
+   * Body: { uri: "resource://..." }
+   */
+  router.post('/mcp/resources/read', async (req: Request, res: Response) => {
+    try {
+      const { uri } = req.body;
+
+      if (!uri) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required field: uri'
+        });
+      }
+
+      const result = await heyReachMCPService.readResource(uri);
+      
+      return res.json({
+        success: true,
+        data: result
+      });
+
+    } catch (error) {
+      console.error('MCP read resource error:', error);
+      return res.status(500).json({
+        success: false,
         error: error instanceof Error ? error.message : 'Internal server error'
       });
     }

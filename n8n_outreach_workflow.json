@@ -1,0 +1,201 @@
+{
+    "name": "LinkedIn Outreach via HeyReach",
+    "nodes": [
+        {
+            "parameters": {
+                "path": "lead-intake",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "id": "webhook-trigger",
+            "name": "Webhook (Lead Intake)"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:3000/api/leads/=ignored/normalize",
+                "urlParameter": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                450,
+                300
+            ],
+            "id": "normalize-lead",
+            "name": "Normalize Lead",
+            "notes": "Replace =ignored with actual ID logic if needed, or rely on body"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:3000/api/leads/=ignored/score",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "forceRecalculate",
+                            "value": "true"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                650,
+                300
+            ],
+            "id": "score-lead",
+            "name": "Score Lead"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{ $json.data.overallScore }}",
+                            "operation": "larger",
+                            "value2": 60
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ],
+            "id": "qualification-check",
+            "name": "If Score > 60"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:3000/api/leads/=ignored/generate-initial",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1050,
+                200
+            ],
+            "id": "generate-message",
+            "name": "Generate Message"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:3000/api/heyreach/leads",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"linkedinProfileUrl\": \"{{ $node['Webhook (Lead Intake)'].json.body.linkedinUrl }}\",\n  \"firstName\": \"{{ $node['Webhook (Lead Intake)'].json.body.name.split(' ')[0] }}\",\n  \"lastName\": \"{{ $node['Webhook (Lead Intake)'].json.body.name.split(' ').slice(1).join(' ') }}\",\n  \"company\": \"{{ $node['Webhook (Lead Intake)'].json.body.company }}\",\n  \"customFields\": {\n    \"custom_message\": \"{{ $json.data.content }}\",\n    \"score\": \"{{ $node['Score Lead'].json.data.overallScore }}\"\n  }\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1250,
+                200
+            ],
+            "id": "create-heyreach-lead",
+            "name": "Create HeyReach Lead"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:3000/api/heyreach/campaigns/YOUR_CAMPAIGN_ID/leads",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"leadId\": \"{{ $json.data.id }}\"\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1450,
+                200
+            ],
+            "id": "add-to-campaign",
+            "name": "Add to Campaign"
+        }
+    ],
+    "connections": {
+        "Webhook (Lead Intake)": {
+            "main": [
+                [
+                    {
+                        "node": "Normalize Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Normalize Lead": {
+            "main": [
+                [
+                    {
+                        "node": "Score Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Score Lead": {
+            "main": [
+                [
+                    {
+                        "node": "If Score > 60",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Score > 60": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Message": {
+            "main": [
+                [
+                    {
+                        "node": "Create HeyReach Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create HeyReach Lead": {
+            "main": [
+                [
+                    {
+                        "node": "Add to Campaign",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
