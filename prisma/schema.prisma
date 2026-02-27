@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Contact {
+  id          String    @id @default(cuid())
+  name        String
+  company     String?
+  role        String?
+  linkedinUrl String?
+  email       String?
+  notes       String?
+  status      String    @default("not_contacted")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  messages    Message[]
+}
+
+model Template {
+  id        String    @id @default(cuid())
+  name      String
+  subject   String?
+  body      String
+  tags      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
+}
+
+model Message {
+  id         String    @id @default(cuid())
+  body       String
+  contactId  String
+  contact    Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  templateId String?
+  template   Template? @relation(fields: [templateId], references: [id])
+  sentAt     DateTime?
+  createdAt  DateTime  @default(now())
+}
