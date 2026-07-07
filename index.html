@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIestimate — Roofing Measurements to Signed Proposals in Seconds</title>
+<meta name="description" content="AIestimate turns roofing measurement reports from Roofr, EagleView, Hover, and GAF into priced, ready-to-send proposals in seconds — built for roofing and siding contractors on the go.">
+<link rel="canonical" href="https://www.aiestimate.org/">
+<meta name="theme-color" content="#0E1A1E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E1A1E'/%3E%3Cpath d='M6 21 L16 8 L26 21' fill='none' stroke='%231F6FE8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="AIestimate — Measurements in. Signed proposals out.">
+<meta property="og:description" content="Turn a Roofr, EagleView, Hover, or GAF measurement report into a priced roofing or siding proposal in seconds.">
+<meta property="og:url" content="https://www.aiestimate.org/">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "AIestimate",
+  "url": "https://www.aiestimate.org/",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "Turns roofing measurement reports from Roofr, EagleView, Hover, and GAF into priced, ready-to-send proposals in seconds for roofing and siding contractors.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "description": "7-day free trial, no credit card required"
+  }
+}
+</script>
+
+<style>
+  :root {
+    --paper: #F5F7F6;
+    --paper-2: #EDF1EF;
+    --grid: #D8E0DC;
+    --ink: #141B19;
+    --ink-2: #4A5450;
+    --accent: #1F6FE8;
+    --accent-sm: #1A5CC4;
+    --accent-tint: #DEE9FB;
+    --slate: #0E1A1E;
+    --slate-line: #3A5058;
+    --wall-grey: #5E747B;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    line-height: 1.55;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  img, svg, canvas { display: block; max-width: 100%; }
+
+  .wrap {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 0.5em;
+  }
+
+  h1 { font-size: clamp(2.75rem, 5vw, 4.4rem); line-height: 1.03; }
+  h2 { font-size: clamp(1.9rem, 3.2vw, 2.6rem); line-height: 1.05; }
+  h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5em; }
+
+  p { color: var(--ink-2); }
+
+  a { color: inherit; }
+
+  .mono {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    letter-spacing: 0.02em;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .band-alt {
+    background-color: var(--paper-2);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* ---------- reveal-on-scroll ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.is-visible { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal { transition: none; opacity: 1; transform: none; }
+  }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.95rem 1.7rem;
+    border-radius: 999px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #FBFCFC;
+  }
+  .btn-primary:hover { background: var(--accent-sm); border-color: var(--accent-sm); transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+  .btn-ghost:hover { background: rgba(20, 27, 25, 0.06); }
+  .btn-sm { padding: 0.6rem 1.2rem; font-size: 0.72rem; }
+  .btn-lg { padding: 1.1rem 2.2rem; font-size: 0.9rem; }
+
+  /* ---------- header ---------- */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(245, 247, 246, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--grid);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+  }
+  .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 1.35rem;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+  }
+  .logo span { color: var(--accent); }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .nav-links a.mono {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink-2);
+  }
+  .nav-links a.mono:hover { color: var(--ink); }
+  .nav-link-how, .nav-link-signin { display: none; }
+  @media (min-width: 480px) { .nav-link-signin { display: inline; } }
+  @media (min-width: 640px) { .nav-link-how { display: inline; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 3.5rem 0 4.5rem; }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 3rem;
+    align-items: center;
+  }
+  @media (max-width: 860px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+    margin: 0 0 1rem;
+  }
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 0.6em;
+    vertical-align: middle;
+  }
+
+  .hero h1 .accent { color: var(--accent); }
+
+  .subhead {
+    font-size: 1.1rem;
+    max-width: 34rem;
+    margin: 0 0 2rem;
+  }
+
+  .cta-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.1rem; }
+
+  .fine-print {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--ink-2);
+    margin: 0;
+  }
+
+  /* ---------- hero report panel ---------- */
+  .hero-panel {
+    position: relative;
+    background: var(--slate);
+    border-radius: var(--radius);
+    padding: 1.1rem;
+    box-shadow: 0 30px 60px -25px rgba(14, 26, 30, 0.55);
+  }
+  .crop { position: absolute; width: 18px; height: 18px; pointer-events: none; }
+  .crop::before, .crop::after { content: ''; position: absolute; background: var(--slate-line); }
+  .crop::before { width: 100%; height: 1px; top: 0; left: 0; }
+  .crop::after { width: 1px; height: 100%; top: 0; left: 0; }
+  .crop-tl { top: 10px; left: 10px; }
+  .crop-tr { top: 10px; right: 10px; }
+  .crop-tr::before { left: auto; right: 0; }
+  .crop-tr::after { left: auto; right: 0; }
+  .crop-bl { bottom: 10px; left: 10px; }
+  .crop-bl::before { top: auto; bottom: 0; }
+  .crop-bl::after { top: auto; bottom: 0; }
+  .crop-br { bottom: 10px; right: 10px; }
+  .crop-br::before { top: auto; bottom: 0; left: auto; right: 0; }
+  .crop-br::after { top: auto; bottom: 0; left: auto; right: 0; }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0.6rem 1rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .panel-id { color: #8FA0A6; }
+  .panel-status { display: inline-flex; align-items: center; gap: 0.4em; color: var(--accent); }
+  .panel-status .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .panel-status.is-ready .dot { animation: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .panel-status .dot { animation: none; }
+  }
+
+  .panel-stage {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: calc(var(--radius) - 6px);
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 30%, rgba(31, 111, 232, 0.08), transparent 60%);
+  }
+  @media (max-width: 600px) {
+    .panel-stage { aspect-ratio: 4 / 3; }
+  }
+  .panel-stage canvas { width: 100%; height: 100%; }
+
+  .callout {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    text-align: center;
+    pointer-events: none;
+  }
+  .callout.is-visible { opacity: 1; }
+  .callout-value {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--accent);
+  }
+  .callout-label {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #A9BAB6;
+  }
+  @media (max-width: 600px) {
+    .hide-mobile { display: none !important; }
+  }
+
+  .webgl-fallback {
+    display: none;
+    text-align: center;
+    font-size: 0.78rem;
+    color: #A9BAB6;
+    padding: 0 1rem 1.5rem;
+  }
+
+  .panel-stage.no-webgl {
+    aspect-ratio: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+  }
+  .panel-stage.no-webgl canvas { display: none; }
+  .panel-stage.no-webgl .webgl-fallback { display: block; }
+  .panel-stage.no-webgl .callout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem 2.5rem;
+  }
+  .panel-stage.no-webgl .callout {
+    position: static;
+    opacity: 1;
+    transform: none;
+  }
+
+  .panel-footer {
+    padding: 1rem 0.6rem 0.3rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: #8FA0A6;
+    text-transform: uppercase;
+  }
+
+  /* ---------- logo strip ---------- */
+  .logo-strip { padding: 2.5rem 0; }
+  .logo-strip-label {
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+    margin: 0 0 1.1rem;
+    text-align: center;
+  }
+  .stamp-row {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.1rem 1.4rem;
+    margin: 0; padding: 0;
+  }
+  .stamp {
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+    border: 1.5px solid var(--ink-2);
+    border-radius: 6px;
+    padding: 0.45rem 0.9rem;
+    opacity: 0.85;
+  }
+  .stamp:nth-child(odd) { transform: rotate(-1.5deg); }
+  .stamp:nth-child(even) { transform: rotate(1.5deg); }
+
+  /* ---------- how it works ---------- */
+  .steps { padding: 4.5rem 0; }
+  .steps h2, .split h2 { text-align: center; }
+  .step-grid {
+    list-style: none;
+    margin: 2.75rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  @media (max-width: 800px) { .step-grid { grid-template-columns: 1fr; } }
+  .step-card {
+    background: #fff;
+    border: 1px solid var(--grid);
+    border-radius: var(--radius);
+    padding: 1.6rem;
+    position: relative;
+  }
+  .step-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 2.2rem;
+    color: var(--grid);
+    display: block;
+  }
+  .badge {
+    position: absolute;
+    top: 1.6rem; right: 1.6rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    background: var(--accent-tint);
+    color: var(--accent-sm);
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+  }
+  .step-card p { font-size: 0.95rem; margin: 0; }
+
+  /* ---------- takeoff / quote split ---------- */
+  .split { padding: 4.5rem 0; }
+  .split-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 2.75rem;
+  }
+  @media (max-width: 800px) { .split-grid { grid-template-columns: 1fr; } }
+
+  .card-kicker {
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    margin: 0 0 1.1rem;
+  }
+
+  .report-card {
+    background: var(--slate);
+    border-radius: var(--radius);
+    padding: 1.8rem;
+  }
+  .report-card .card-kicker { color: #8FA0A6; }
+  .mono-table { width: 100%; border-collapse: collapse; }
+  .mono-table tr { border-bottom: 1px solid var(--slate-line); }
+  .mono-table tr:last-child { border-bottom: none; }
+  .mono-table th, .mono-table td {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    text-align: left;
+    padding: 0.65rem 0;
+    font-weight: 400;
+  }
+  .mono-table th { color: #C3D0CD; }
+  .mono-table td { color: #F2F5F4; text-align: right; }
+
+  .quote-card {
+    background: #fff;
+    border: 1px solid var(--grid);
+    border-radius: var(--radius);
+    padding: 1.8rem;
+  }
+  .quote-card .card-kicker { color: var(--ink); }
+  .quote-table { width: 100%; border-collapse: collapse; }
+  .quote-table tr { border-bottom: 1px solid var(--grid); }
+  .quote-table td {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    padding: 0.65rem 0;
+    color: var(--ink-2);
+  }
+  .quote-table td:last-child { text-align: right; color: var(--ink); white-space: nowrap; }
+  .quote-table tfoot td {
+    font-weight: 600;
+    color: var(--ink);
+    border-top: 2px solid var(--ink);
+    padding-top: 0.9rem;
+  }
+  .quote-table tfoot td:last-child { color: var(--accent-sm); font-size: 1rem; }
+
+  /* ---------- benefits ---------- */
+  .benefits { padding: 4.5rem 0; }
+  .benefit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  @media (max-width: 800px) { .benefit-grid { grid-template-columns: 1fr; } }
+  .benefit-card {
+    border-top: 4px solid var(--accent);
+    padding: 1.5rem 0.25rem 0;
+  }
+  .benefit-card p { font-size: 0.95rem; margin: 0; }
+
+  /* ---------- CTA band ---------- */
+  .cta-band {
+    background-color: var(--slate);
+    background-image:
+      linear-gradient(rgba(58, 80, 88, 0.55) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(58, 80, 88, 0.55) 1px, transparent 1px);
+    background-size: 28px 28px;
+    padding: 5rem 0;
+    text-align: center;
+  }
+  .cta-band h2 { color: #F5F7F6; }
+  .cta-band-actions { display: flex; justify-content: center; }
+
+  /* ---------- footer ---------- */
+  .site-footer {
+    border-top: 1px solid var(--grid);
+    padding: 2rem 0;
+  }
+  .footer-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--ink-2);
+  }
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 600px) {
+    .hero h1 { font-size: clamp(2.5rem, 11vw, 3.1rem); line-height: 1.04; }
+    .cta-row { flex-direction: column; }
+    .cta-row .btn { width: 100%; }
+    .cta-band-actions .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav-inner">
+    <a href="#top" class="logo">AI<span>estimate</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a class="mono nav-link-how" href="#how-it-works">How it works</a>
+      <a class="mono nav-link-signin" href="https://app.aiestimate.org/auth">Sign in</a>
+      <a class="btn btn-primary btn-sm" href="https://app.aiestimate.org/free-trial">Start free trial</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="top">
+    <div class="wrap hero-grid">
+      <div class="hero-copy reveal">
+        <p class="eyebrow">Roofing &amp; siding contractors</p>
+        <h1>Measurements in. Signed <span class="accent">proposals</span> out.</h1>
+        <p class="subhead">Stop doing math on Sunday nights. Upload the report your customer already has, and walk away with a priced, ready-to-send proposal before the coffee's done.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://app.aiestimate.org/free-trial">Create your first quote</a>
+          <a class="btn btn-ghost" href="#how-it-works">See how it works</a>
+        </div>
+        <p class="fine-print">7-day free trial &middot; No credit card required</p>
+      </div>
+
+      <div class="hero-panel reveal" id="reportPanel">
+        <span class="crop crop-tl" aria-hidden="true"></span>
+        <span class="crop crop-tr" aria-hidden="true"></span>
+        <span class="crop crop-bl" aria-hidden="true"></span>
+        <span class="crop crop-br" aria-hidden="true"></span>
+
+        <div class="panel-header">
+          <span class="panel-id">Aerial takeoff / RPT-2481</span>
+          <span class="panel-status" id="panelStatus"><i class="dot" aria-hidden="true"></i><span id="statusText">Parsing</span></span>
+        </div>
+
+        <div class="panel-stage" id="panelStage">
+          <canvas id="houseCanvas" aria-hidden="true"></canvas>
+
+          <p class="webgl-fallback" hidden>Live takeoff preview unavailable in this browser — measurements are pulled straight from the parsed report.</p>
+
+          <div class="callout-grid">
+            <div class="callout" id="calloutArea">
+              <span class="callout-value">24.3 SQ</span>
+              <span class="callout-label">total area</span>
+            </div>
+            <div class="callout hide-mobile" id="calloutPitch">
+              <span class="callout-value">6/12</span>
+              <span class="callout-label">predominant pitch</span>
+            </div>
+            <div class="callout" id="calloutRidge">
+              <span class="callout-value">42 LF</span>
+              <span class="callout-label">ridge</span>
+            </div>
+            <div class="callout hide-mobile" id="calloutWaste">
+              <span class="callout-value">12%</span>
+              <span class="callout-label">waste factor</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-footer">Src: EagleView.pdf / Quote ready in 00:07</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="logo-strip band-alt reveal" aria-label="Supported measurement report formats">
+    <div class="wrap">
+      <p class="logo-strip-label">Reads reports from</p>
+      <ul class="stamp-row">
+        <li class="stamp">Roofr</li>
+        <li class="stamp">EagleView</li>
+        <li class="stamp">Hover</li>
+        <li class="stamp">GAF</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="steps" id="how-it-works" aria-labelledby="steps-heading">
+    <div class="wrap">
+      <h2 id="steps-heading">How it works</h2>
+      <ol class="step-grid">
+        <li class="step-card reveal">
+          <span class="step-num">01</span>
+          <span class="badge">~10 sec</span>
+          <h3>Upload the PDF</h3>
+          <p>Drop in a report from Roofr, EagleView, Hover, or GAF QuickMeasure — no re-typing measurements by hand.</p>
+        </li>
+        <li class="step-card reveal">
+          <span class="step-num">02</span>
+          <span class="badge">~7 sec</span>
+          <h3>AI runs the takeoff</h3>
+          <p>AIestimate reads every dimension and applies your rates, waste factor, and material pricing automatically.</p>
+        </li>
+        <li class="step-card reveal">
+          <span class="step-num">03</span>
+          <span class="badge">Same visit</span>
+          <h3>Send the proposal</h3>
+          <p>A branded, itemized proposal is ready to text or email before you're back in the truck.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="split band-alt" id="takeoff-to-quote" aria-labelledby="split-heading">
+    <div class="wrap">
+      <h2 id="split-heading" class="reveal">From takeoff to quote</h2>
+      <div class="split-grid">
+        <div class="report-card reveal">
+          <p class="card-kicker mono">Parsed report</p>
+          <table class="mono-table">
+            <tbody>
+              <tr><th scope="row">Area</th><td>24.3 SQ</td></tr>
+              <tr><th scope="row">Predominant pitch</th><td>6/12</td></tr>
+              <tr><th scope="row">Ridge</th><td>42 LF</td></tr>
+              <tr><th scope="row">Valley</th><td>18 LF</td></tr>
+              <tr><th scope="row">Eave</th><td>156 LF</td></tr>
+              <tr><th scope="row">Waste factor</th><td>12%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="quote-card reveal">
+          <p class="card-kicker mono">Your rates applied</p>
+          <table class="quote-table">
+            <tbody>
+              <tr><td>Architectural shingles — 27.2 SQ w/ waste</td><td>$9,792</td></tr>
+              <tr><td>Synthetic underlayment</td><td>$1,088</td></tr>
+              <tr><td>Ridge cap — 42 LF</td><td>$504</td></tr>
+              <tr><td>Flashing &amp; accessories</td><td>$860</td></tr>
+              <tr><td>Labor — tear-off &amp; install</td><td>$6,800</td></tr>
+              <tr><td>Dumpster &amp; disposal</td><td>$650</td></tr>
+            </tbody>
+            <tfoot>
+              <tr><td>Total</td><td>$19,694</td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="benefits" aria-labelledby="benefits-heading">
+    <div class="wrap">
+      <h2 id="benefits-heading" class="visually-hidden">Why contractors switch</h2>
+      <div class="benefit-grid">
+        <div class="benefit-card reveal">
+          <h3>First to quote wins</h3>
+          <p>Homeowners sign with whoever shows up first. Turn a PDF into a proposal before the competition finishes their walkthrough.</p>
+        </div>
+        <div class="benefit-card reveal">
+          <h3>Protect your margin</h3>
+          <p>Every line item is priced against your rates, not a guess — so waste factor and material costs don't eat into what you actually make.</p>
+        </div>
+        <div class="benefit-card reveal">
+          <h3>Order with confidence</h3>
+          <p>Squares, ridge, and valley come straight off the report, not off eyeballing a roof from the truck.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band reveal" aria-labelledby="cta-band-heading">
+    <div class="wrap">
+      <h2 id="cta-band-heading">Your next estimate takes 7 seconds</h2>
+      <div class="cta-band-actions">
+        <a class="btn btn-primary btn-lg" href="https://app.aiestimate.org/free-trial">Create your first quote</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <p>AIestimate — Roofing &amp; siding proposal software</p>
+    <p>&copy; <span id="year">2026</span> AIestimate</p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  /* ---------- scroll reveal ---------- */
+  var revealEls = document.querySelectorAll('.reveal');
+  var reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (reduceMotionQuery.matches) {
+    revealEls.forEach(function (el) { el.classList.add('is-visible'); });
+  } else if ('IntersectionObserver' in window) {
+    var revealObserver = new IntersectionObserver(function (entries, obs) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    revealEls.forEach(function (el) { revealObserver.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('is-visible'); });
+  }
+
+  /* ---------- aerial takeoff scene ---------- */
+  var stage = document.getElementById('panelStage');
+  var canvas = document.getElementById('houseCanvas');
+  var statusText = document.getElementById('statusText');
+  var panelStatus = document.getElementById('panelStatus');
+  var fallbackEl = stage.querySelector('.webgl-fallback');
+  var calloutEls = {
+    area: document.getElementById('calloutArea'),
+    pitch: document.getElementById('calloutPitch'),
+    ridge: document.getElementById('calloutRidge'),
+    waste: document.getElementById('calloutWaste')
+  };
+  var CALLOUT_ORDER = ['area', 'ridge', 'pitch', 'waste'];
+  var ASSEMBLE_MS = 2200;
+
+  function showFallback() {
+    stage.classList.add('no-webgl');
+    fallbackEl.hidden = false;
+    CALLOUT_ORDER.forEach(function (key) {
+      calloutEls[key].classList.add('is-visible');
+    });
+    statusText.textContent = 'Quote ready';
+    panelStatus.classList.add('is-ready');
+  }
+
+  if (typeof THREE === 'undefined') {
+    showFallback();
+    return;
+  }
+
+  function buildHouseModel() {
+    var verts = [];
+    var vertIndex = {};
+
+    function addVert(x, y, z) {
+      var key = Math.round(x * 1000) + '_' + Math.round(y * 1000) + '_' + Math.round(z * 1000);
+      if (vertIndex.hasOwnProperty(key)) return vertIndex[key];
+      var idx = verts.length;
+      var dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+      var dist = 2.6 + Math.random() * 2.2;
+      verts.push({
+        target: new THREE.Vector3(x, y, z),
+        scatter: new THREE.Vector3(x, y, z).addScaledVector(dir, dist)
+      });
+      vertIndex[key] = idx;
+      return idx;
+    }
+
+    var wallEdges = [];
+    var roofEdges = [];
+    var roofTris = [];
+
+    var Lx = 2.6, Dz = 1.9, wallH = 1.0, ridgeRise = 0.85;
+    var hx = Lx / 2, hz = Dz / 2;
+    var bA = addVert(-hx, 0, -hz), bB = addVert(hx, 0, -hz), bC = addVert(hx, 0, hz), bD = addVert(-hx, 0, hz);
+    var tA = addVert(-hx, wallH, -hz), tB = addVert(hx, wallH, -hz), tC = addVert(hx, wallH, hz), tD = addVert(-hx, wallH, hz);
+    var r1 = addVert(-hx, wallH + ridgeRise, 0), r2 = addVert(hx, wallH + ridgeRise, 0);
+
+    wallEdges.push([bA, bB], [bB, bC], [bC, bD], [bD, bA], [bA, tA], [bB, tB], [bC, tC], [bD, tD], [tA, tB], [tB, tC], [tC, tD], [tD, tA]);
+    roofEdges.push([tA, r1], [tD, r1], [tB, r2], [tC, r2], [r1, r2]);
+    roofTris.push([tA, tB, r2], [tA, r2, r1], [tD, tC, r2], [tD, r2, r1], [tA, tD, r1], [tB, tC, r2]);
+
+    var wx = -0.35, Wx2 = 1.35, Lz2 = 1.55, ridgeRise2 = 0.6;
+    var hwx = Wx2 / 2;
+    var zStart = hz - 0.55, zEnd = zStart + Lz2;
+    var wbE = addVert(wx - hwx, 0, zStart), wbF = addVert(wx + hwx, 0, zStart), wbG = addVert(wx + hwx, 0, zEnd), wbH = addVert(wx - hwx, 0, zEnd);
+    var wtE = addVert(wx - hwx, wallH, zStart), wtF = addVert(wx + hwx, wallH, zStart), wtG = addVert(wx + hwx, wallH, zEnd), wtH = addVert(wx - hwx, wallH, zEnd);
+    var wr1 = addVert(wx, wallH + ridgeRise2, zStart), wr2 = addVert(wx, wallH + ridgeRise2, zEnd);
+
+    wallEdges.push([wbE, wbF], [wbF, wbG], [wbG, wbH], [wbH, wbE], [wbE, wtE], [wbF, wtF], [wbG, wtG], [wbH, wtH], [wtE, wtF], [wtF, wtG], [wtG, wtH], [wtH, wtE]);
+    roofEdges.push([wtE, wr1], [wtH, wr1], [wtF, wr2], [wtG, wr2], [wr1, wr2]);
+    roofTris.push([wtE, wtF, wr2], [wtE, wr2, wr1], [wtH, wtG, wr2], [wtH, wr2, wr1], [wtE, wtH, wr1], [wtF, wtG, wr2]);
+
+    var anchors = {
+      area: new THREE.Vector3(-hx * 0.6, wallH + ridgeRise * 0.25, -hz * 0.6),
+      ridge: new THREE.Vector3(0, wallH + ridgeRise + 0.2, 0),
+      pitch: new THREE.Vector3(hx * 0.8, wallH + ridgeRise * 0.3, hz * 0.1),
+      waste: new THREE.Vector3(wx, wallH + ridgeRise2 * 0.3, zStart + Lz2 * 0.85)
+    };
+
+    return { verts: verts, wallEdges: wallEdges, roofEdges: roofEdges, roofTris: roofTris, anchors: anchors };
+  }
+
+  function flat(pairs) {
+    var out = [];
+    for (var i = 0; i < pairs.length; i++) { out.push(pairs[i][0], pairs[i][1]); }
+    return out;
+  }
+  function flatTris(tris) {
+    var out = [];
+    for (var i = 0; i < tris.length; i++) { out.push(tris[i][0], tris[i][1], tris[i][2]); }
+    return out;
+  }
+
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  } catch (e) {
+    showFallback();
+    return;
+  }
+  if (!renderer || !renderer.getContext()) { showFallback(); return; }
+
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(35, 1, 0.1, 50);
+  camera.position.set(3.4, 2.6, 4.4);
+  camera.lookAt(0, 1.1, 0.2);
+
+  var group = new THREE.Group();
+  scene.add(group);
+
+  var model = buildHouseModel();
+  var verts = model.verts;
+  var count = verts.length;
+  var positionsArr = new Float32Array(count * 3);
+
+  var wallGeo = new THREE.BufferGeometry();
+  wallGeo.setAttribute('position', new THREE.BufferAttribute(positionsArr, 3));
+  wallGeo.setIndex(flat(model.wallEdges));
+  var wallMat = new THREE.LineBasicMaterial({ color: 0x5E747B, transparent: true, opacity: 0 });
+  group.add(new THREE.LineSegments(wallGeo, wallMat));
+
+  var roofGeo = new THREE.BufferGeometry();
+  roofGeo.setAttribute('position', new THREE.BufferAttribute(positionsArr, 3));
+  roofGeo.setIndex(flat(model.roofEdges));
+  var roofMat = new THREE.LineBasicMaterial({ color: 0x1F6FE8, transparent: true, opacity: 0 });
+  group.add(new THREE.LineSegments(roofGeo, roofMat));
+
+  var faceGeo = new THREE.BufferGeometry();
+  faceGeo.setAttribute('position', new THREE.BufferAttribute(positionsArr, 3));
+  faceGeo.setIndex(flatTris(model.roofTris));
+  var faceMat = new THREE.MeshBasicMaterial({ color: 0x1F6FE8, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+  group.add(new THREE.Mesh(faceGeo, faceMat));
+
+  function updateVerts(t) {
+    for (var i = 0; i < verts.length; i++) {
+      var v = verts[i];
+      positionsArr[i * 3] = v.scatter.x + (v.target.x - v.scatter.x) * t;
+      positionsArr[i * 3 + 1] = v.scatter.y + (v.target.y - v.scatter.y) * t;
+      positionsArr[i * 3 + 2] = v.scatter.z + (v.target.z - v.scatter.z) * t;
+    }
+    wallGeo.attributes.position.needsUpdate = true;
+    roofGeo.attributes.position.needsUpdate = true;
+    faceGeo.attributes.position.needsUpdate = true;
+  }
+
+  function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+
+  function onResize() {
+    var rect = stage.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    renderer.setSize(rect.width, rect.height, false);
+    camera.aspect = rect.width / rect.height;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  function updateCalloutPositions(keys) {
+    group.updateMatrixWorld(true);
+    var rect = stage.getBoundingClientRect();
+    keys.forEach(function (key) {
+      var world = model.anchors[key].clone().applyMatrix4(group.matrixWorld);
+      var ndc = world.project(camera);
+      var x = (ndc.x * 0.5 + 0.5) * rect.width;
+      var y = (1 - (ndc.y * 0.5 + 0.5)) * rect.height;
+      calloutEls[key].style.left = x + 'px';
+      calloutEls[key].style.top = y + 'px';
+    });
+  }
+
+  var reduced = reduceMotionQuery.matches;
+
+  if (reduced) {
+    updateVerts(1);
+    wallMat.opacity = 1; roofMat.opacity = 1; faceMat.opacity = 0.07;
+    updateCalloutPositions(CALLOUT_ORDER);
+    CALLOUT_ORDER.forEach(function (key) { calloutEls[key].classList.add('is-visible'); });
+    statusText.textContent = 'Quote ready';
+    panelStatus.classList.add('is-ready');
+    renderer.render(scene, camera);
+    return;
+  }
+
+  var startTime = null;
+  var pauseStart = null;
+  var rafId = null;
+  var readyFlagged = false;
+
+  function triggerCallouts() {
+    CALLOUT_ORDER.forEach(function (key, i) {
+      setTimeout(function () { calloutEls[key].classList.add('is-visible'); }, i * 150);
+    });
+  }
+
+  function frame(now) {
+    if (startTime === null) startTime = now;
+    var elapsed = now - startTime;
+    var rawT = Math.min(1, elapsed / ASSEMBLE_MS);
+    var t = easeOutCubic(rawT);
+
+    updateVerts(t);
+    wallMat.opacity = Math.min(1, rawT * 1.3);
+    roofMat.opacity = Math.min(1, Math.max(0, (rawT - 0.1) * 1.3));
+    faceMat.opacity = 0.07 * Math.max(0, Math.min(1, (rawT - 0.55) / 0.45));
+
+    group.rotation.y += 0.0025;
+
+    if (!readyFlagged && rawT >= 1) {
+      readyFlagged = true;
+      statusText.textContent = 'Quote ready';
+      panelStatus.classList.add('is-ready');
+      triggerCallouts();
+    }
+
+    updateCalloutPositions(CALLOUT_ORDER);
+    renderer.render(scene, camera);
+    rafId = requestAnimationFrame(frame);
+  }
+
+  if ('IntersectionObserver' in window) {
+    var panelObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          if (rafId === null) {
+            if (pauseStart !== null && startTime !== null) {
+              startTime += (performance.now() - pauseStart);
+              pauseStart = null;
+            }
+            rafId = requestAnimationFrame(frame);
+          }
+        } else {
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+            pauseStart = performance.now();
+          }
+        }
+      });
+    }, { threshold: 0.1 });
+    panelObserver.observe(document.getElementById('reportPanel'));
+  } else {
+    rafId = requestAnimationFrame(frame);
+  }
+})();
+</script>
+</body>
+</html>
