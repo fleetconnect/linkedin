@@ -12,10 +12,11 @@ assets/
   css/styles.css        Design system + all page styles
   js/config.js          ← the only file you must edit to go live
   js/main.js            Validation, form submission, analytics, motion
-  img/logo.jpg          Brand mark, 640px — used for Open Graph/Twitter cards
+  img/logo.jpg          Brand mark, 640px
   img/logo-sm.jpg       Brand mark, 320px — used in the header and footer
   img/favicon.svg       Tab icon
-  img/fleet/*.svg       Vehicle artwork (placeholders — see "Vehicle photography")
+  img/fleet/*.jpg       Hero + fleet photography (PLACEHOLDERS — see §4)
+  img/fleet/CREDITS.md  Photo provenance and licensing
 ```
 
 ---
@@ -114,29 +115,40 @@ working pipeline. Both disappear the moment a real endpoint is configured.
 
 ## 4. Vehicle photography
 
-The two fleet cards and the hero currently use **original SVG illustrations** — stylised black
-vehicles on a lit studio floor, drawn to match the brand palette. They are placeholders standing in
-for real photography, not photos of actual vehicles.
+> **The photos currently in the repo are interim placeholders showing other people's cars.**
+> Replace them before you drive traffic here. Full provenance and licensing is in
+> `assets/img/fleet/CREDITS.md`.
 
-To swap in real photos:
+The hero and both fleet cards use real photographs sourced under **CC0 1.0** (public domain,
+commercial use permitted, no attribution required) from Wikimedia Commons via Openverse. Each one
+has had its registration plate blurred and has been cropped and graded toward the dark
+gold-on-black treatment.
 
-1. Shoot or license images of *your* vehicles. Don't pull manufacturer press photos or stock images
-   off the web — they're copyrighted, and a rental company advertising cars it doesn't own creates a
-   real problem.
-2. Export at **1600×1000** (16:10), then compress — WebP at quality ~80 usually lands under 150 KB.
-3. Replace the `src` on each card in `index.html`:
+They are a stopgap, not a finish line. A rental listing implies the customer gets *that* vehicle,
+and these are a green Urus photographed in a dealership and a dark green G63 photographed on a
+Moscow street. Your own cars are the whole point — it's why the reference sites look credible.
 
-```html
-<!-- assets/img/fleet/urus.svg  →  your photo -->
-<img src="assets/img/fleet/urus.webp" alt="Lamborghini Urus" width="1600" height="1000"
-     loading="lazy" decoding="async">
-```
+### Swapping in your own
 
-Keep the `width`/`height` attributes — they reserve layout space and prevent the page from jumping
-as images load.
+Drop your photos in at these exact filenames and sizes. Nothing else needs to change:
 
-For the hero, replace the inline `<svg>` inside `.hero-bg` with an `<img>` or a muted, looping
-`<video>`. Keep `.hero-veil` above it so the headline stays readable.
+| File | Size | Shot |
+| --- | --- | --- |
+| `assets/img/fleet/hero-urus.jpg` | 2000 × 1250 | Wide, vehicle right of centre so the headline sits on clear ground |
+| `assets/img/fleet/urus.jpg` | 1600 × 1000 | Three-quarter front, whole vehicle |
+| `assets/img/fleet/g-wagon.jpg` | 1600 × 1000 | Three-quarter front, whole vehicle |
+
+Keep the `width`/`height` attributes in `index.html` — they reserve layout space so the page
+doesn't jump as images load. Compress to roughly 200–300 KB each; WebP at quality ~80 is smaller
+still if you'd rather update the `src` extensions.
+
+**What shoots well here:** an underground garage, a covered forecourt, or a clean wall at dusk.
+Three-quarter front from a low angle. Avoid midday sun — the dark palette wants soft, directional
+light and reflections on the paint. Both reference sites shoot under architectural canopies for
+exactly this reason.
+
+If you want a different vehicle in the hero, change the `src` inside `.hero-bg` in `index.html` and
+adjust `object-position` in `styles.css` (`.hero-bg img`) so the car sits clear of the headline.
 
 ---
 
@@ -173,4 +185,4 @@ they tell visitors the terms aren't final yet.
   under the submit button. Real-time availability needs a booking system.
 - **Google Fonts is a third-party request.** Self-host Cormorant Garamond and Inter if you'd rather
   avoid it.
-- Fleet artwork is illustration, not photography (see §4).
+- **Fleet photos are placeholders of other people's cars** and must be replaced (see §4).
