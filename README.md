@@ -178,7 +178,35 @@ they tell visitors the terms aren't final yet.
   fields, labelled sections, 44px+ tap targets
 - SEO: title, description, canonical, Open Graph/Twitter cards, `AutoRental` structured data
 
-## 7. Known limits
+## 7. Deploying to Vercel
+
+`vercel.json` is committed and validated against Vercel's published schema. It sets clean URLs
+(`/privacy` rather than `/privacy.html`), security headers, and caching — HTML always revalidates so
+edits go live immediately, while `assets/` gets a one-hour cache with background revalidation.
+There is no build step; Vercel serves the repo as static files.
+
+**Option A — Git integration (recommended).** At [vercel.com/new](https://vercel.com/new), import
+`fleetconnect/linkedin`. Framework preset: **Other**. Leave build command and output directory
+empty. Every push then deploys automatically, with a preview URL per branch.
+
+**Option B — CLI, from your machine.**
+
+```bash
+npx vercel login
+npx vercel          # preview deploy
+npx vercel --prod   # production
+```
+
+### Before you point a domain at it
+
+A production deploy is publicly reachable and indexable. Until §2 and §4 are done, the live site
+would have a phone number that dials nowhere, a booking form that discards submissions, draft legal
+pages, and photos of cars that aren't yours. Deploy previews freely — just don't run ads or attach
+the real domain until those are filled in.
+
+---
+
+## 8. Known limits
 
 - **No backend.** Submissions go wherever `formEndpoint` points. Without it, nothing is sent.
 - **No live availability.** The form is a request, not a calendar check — matching the disclaimer
