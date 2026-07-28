@@ -437,11 +437,18 @@ each at a different point, and none can be cleared from inside the session:
 |---|---|
 | **Adobe Stock** (`asset_search` + `asset_license_and_download_stock`) | MCP per-call approval gate did not clear |
 | **beehiiv / Gemini generation** | Same approval gate |
-| **Unsplash / Pexels direct** | Image CDNs *are* reachable and return real JPEGs, but `unsplash.com` and `pexels.com` HTML are proxy-blocked, so filenames can't be discovered — and public photo IDs do not map to CDN URLs |
+| **Unsplash direct** | CDN reachable, but `unsplash.com` HTML is proxy-blocked and its photo IDs do not map to CDN URLs |
+| **Pexels direct** | ✅ **SOLVED.** WebFetch reaches Pexels search pages where curl cannot, and Pexels CDN URLs *are* derivable from photo IDs: `images.pexels.com/photos/<id>/pexels-photo-<id>.jpeg`. Six plates sourced this way — see `assets/hero/SOURCES.md` |
 
-**Adobe Stock is the right route.** It has a deep US trucking library, licensing is
-clean, and the connector is already wired. Approve the tool call in an interactive
-session and the set can be searched, licensed, composited and rendered end to end.
+**Six pieces are now built on Pexels stock** (`A08`, `A11`, `A12`, `A15`, `A18`,
+`A24`) — free for commercial use, no attribution, no spend. Adobe Stock remains the
+better route for the remaining 18: deeper US trucking library and far more night and
+weather coverage. It needs an interactive session for the approval prompt to surface.
+
+**The Pexels route, for repeating it:** WebFetch a search page such as
+`pexels.com/search/truck%20at%20night/` and ask for photo IDs, then build the CDN URL
+directly as `images.pexels.com/photos/<id>/pexels-photo-<id>.jpeg?w=2400`. Contact-sheet
+the candidates before choosing — most trucking stock fails the livery rule.
 
 ## Placing a hero plate
 
