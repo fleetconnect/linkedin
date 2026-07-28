@@ -425,3 +425,50 @@ Match the truck to the emotion — a 389 for pride, a Cascadia for efficiency.
 Unchanged from the book. Only `+$440 per load`, `100+ carriers` and
 `$2,000–$4,000 per month` are the client's published figures. Nothing else numeric
 goes on a creative without a source.
+
+---
+
+# SOURCING STATUS — READ THIS
+
+Three routes to hero photography were attempted in-session. All three are blocked,
+each at a different point, and none can be cleared from inside the session:
+
+| Route | Blocker |
+|---|---|
+| **Adobe Stock** (`asset_search` + `asset_license_and_download_stock`) | MCP per-call approval gate did not clear |
+| **beehiiv / Gemini generation** | Same approval gate |
+| **Unsplash / Pexels direct** | Image CDNs *are* reachable and return real JPEGs, but `unsplash.com` and `pexels.com` HTML are proxy-blocked, so filenames can't be discovered — and public photo IDs do not map to CDN URLs |
+
+**Adobe Stock is the right route.** It has a deep US trucking library, licensing is
+clean, and the connector is already wired. Approve the tool call in an interactive
+session and the set can be searched, licensed, composited and rendered end to end.
+
+## Placing a hero plate
+
+```bash
+./build/place-hero.sh A01 ~/Downloads/cascadia-fuel-island.jpg
+```
+
+Copies the file into `assets/hero/`, points the layout at it, drops the placeholder,
+and re-renders. One command per concept.
+
+## Stock selection criteria — non-negotiable for this brand
+
+Trucking stock carries hazards most categories don't. Reject any frame with:
+
+- **Third-party carrier livery.** A real fleet's name on the cab or trailer implies a
+  client relationship Linx doesn't have. This is the most common disqualifier — most
+  trucking stock is shot at truck stops and the trucks are somebody's.
+- **Readable plates, DOT numbers or MC numbers.** Same problem, plus it identifies a
+  real business.
+- **Non-US cabs.** Scania, MAN, DAF, cab-over Volvo FH. A US owner-operator clocks a
+  European cab in under a second and the ad loses all credibility with the only
+  audience that matters.
+- **Recognisable faces** without a model release.
+- **The stock look itself** — noon light, flat chrome, smiling driver, thumbs up,
+  clipboard, headset. Everything the brief already rules out.
+
+Search terms that surface usable frames: `long hood conventional truck`, `truck at
+night rain`, `truck stop blue hour`, `flatbed oversize load`, `truck silhouette
+sunset`, `semi truck rear doors open`. Avoid `logistics`, `delivery`, `supply chain`
+— those return the exact stock aesthetic the campaign is built to avoid.
