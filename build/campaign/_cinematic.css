@@ -114,3 +114,7 @@
   font-family:'Geist',monospace; font-size:11.5px; letter-spacing:.28em;
   text-transform:uppercase; color:rgba(255,255,255,.46);
 }
+
+/* Gemini/AI sparkle watermarks sit bottom-right. This zooms ~14% and shifts the
+   frame up so that corner falls outside the canvas. Verify per plate. */
+.hero.crop-wm{ background-size:116%; background-position:50% 34%; }
