@@ -1,0 +1,100 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_fonts.css">
+<!-- 15 THE INVISIBLE EMPLOYEE — 1970s personnel record. Accurate reproduction, no design. -->
+<style>
+  .a{background:#C9B995}
+  .card{position:absolute;inset:52px;background:#E4D5B7;
+        box-shadow:0 14px 30px rgba(60,44,20,.30);padding:44px 52px 40px}
+  /* punched filing hole */
+  .hole{position:absolute;top:96px;left:50%;transform:translateX(-50%);
+        width:34px;height:34px;border-radius:50%;background:#C9B995;
+        box-shadow:inset 0 2px 4px rgba(60,44,20,.45)}
+
+  .tw{font-family:'JBMono';color:#22201C}
+
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;
+       border-bottom:2px solid #22201C;padding-bottom:12px}
+  .hdr .l{font-family:'JBMono';font-weight:700;font-size:19px;letter-spacing:.16em;text-transform:uppercase}
+  .hdr .r{font-family:'JBMono';font-size:11px;letter-spacing:.12em;text-align:right;line-height:1.9;color:#4A453C}
+
+  .body{display:flex;gap:38px;margin-top:34px}
+  .photo{flex:0 0 210px}
+  .box{width:210px;height:262px;border:2px solid #22201C;background:#DACAA9;
+       display:flex;align-items:flex-end;justify-content:center;overflow:hidden;position:relative}
+  /* the empty silhouette where a photograph should be */
+  .box .sil{width:150px;height:196px;position:relative}
+  .box .sil:before{content:'';position:absolute;left:50%;top:0;transform:translateX(-50%);
+                   width:82px;height:82px;border-radius:50%;background:#C3B190}
+  .box .sil:after{content:'';position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+                  width:150px;height:96px;border-radius:76px 76px 0 0;background:#C3B190}
+  .pcap{margin-top:9px;font-family:'JBMono';font-size:9.5px;letter-spacing:.13em;
+        text-transform:uppercase;color:#6A6357;text-align:center;line-height:1.7}
+
+  .fields{flex:1}
+  .f{display:flex;align-items:flex-end;gap:12px;margin-bottom:19px}
+  .f .k{flex:0 0 152px;font-family:'JBMono';font-size:10px;letter-spacing:.17em;
+        text-transform:uppercase;color:#5A544A;padding-bottom:5px}
+  .f .v{flex:1;border-bottom:1px solid #22201C;font-family:'JBMono';font-size:17px;
+        padding-bottom:4px;letter-spacing:.01em}
+  .f .v.small{font-size:14px}
+
+  .stamp{position:absolute;right:96px;top:452px;transform:rotate(-11deg);
+         border:3px solid #B23A2E;color:#B23A2E;padding:11px 18px 9px;text-align:center;
+         font-family:'JBMono';font-weight:700;font-size:20px;letter-spacing:.16em;opacity:.80}
+  .stamp small{display:block;font-size:10px;letter-spacing:.14em;margin-top:3px;font-weight:400}
+
+  .note{margin-top:8px;border-top:2px solid #22201C;padding-top:18px}
+  .note .h{font-family:'JBMono';font-size:10px;letter-spacing:.20em;text-transform:uppercase;color:#5A544A;margin-bottom:10px}
+  .note .t{font-family:'JBMono';font-size:14.5px;line-height:1.68;color:#22201C}
+
+  .sig{margin-top:26px;display:flex;justify-content:space-between;align-items:flex-end;gap:34px}
+  .sig .s{flex:1}
+  .sig .ln{border-bottom:1px solid #22201C;height:34px}
+  .sig .lb{margin-top:6px;font-family:'JBMono';font-size:9.5px;letter-spacing:.16em;
+           text-transform:uppercase;color:#6A6357}
+  .ink{font-family:'JBMono';font-size:19px;color:#2A3E7A;padding-bottom:3px}
+</style></head><body>
+<div class="a">
+  <div class="card">
+    <div class="hole"></div>
+
+    <div class="hdr">
+      <div class="l">Personnel Record</div>
+      <div class="r">FORM 7-A &nbsp;·&nbsp; CONFIDENTIAL<br>EMPLOYEE NO. 002</div>
+    </div>
+
+    <div class="body">
+      <div class="photo">
+        <div class="box"><div class="sil"></div></div>
+        <div class="pcap">No photograph on file<br>None has ever been requested</div>
+      </div>
+
+      <div class="fields">
+        <div class="f"><div class="k">Position</div><div class="v">Dispatch</div></div>
+        <div class="f"><div class="k">Department</div><div class="v">Freight &amp; rate negotiation</div></div>
+        <div class="f"><div class="k">Hours</div><div class="v">Before yours. After yours.</div></div>
+        <div class="f"><div class="k">Reports to</div><div class="v">You</div></div>
+        <div class="f"><div class="k">Salary</div><div class="v small">Less than the rates recovered</div></div>
+        <div class="f"><div class="k">Start date</div><div class="v small">Whenever you stop doing it</div></div>
+      </div>
+    </div>
+
+    <div class="stamp">HIRED<small>NEVER SEEN</small></div>
+
+    <div class="note">
+      <div class="h">Supervisor&rsquo;s note</div>
+      <div class="t">Employee performs load sourcing, rate negotiation, broker communication,
+        carrier packet setup, rate confirmations and check calls on a full-time basis.
+        Does not require a desk, a truck, or a parking space. Has never once asked
+        the operator to hold.</div>
+    </div>
+
+    <div class="sig">
+      <div class="s"><div class="ln"><span class="ink">Lasandra Sutherland</span></div>
+        <div class="lb">Dispatcher &mdash; signature</div></div>
+      <div class="s"><div class="ln"></div><div class="lb">Carrier &mdash; signature</div></div>
+      <div class="s" style="flex:0 0 190px"><div class="ln"></div><div class="lb">Date of hire</div></div>
+    </div>
+  </div>
+  <div class="grain"></div>
+</div>
+</body></html>

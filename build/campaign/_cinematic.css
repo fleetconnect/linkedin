@@ -1,0 +1,116 @@
+/* ============================================================
+   LINX — CINEMATIC LOCKUP SYSTEM
+   Three layouts for the 80% hero-truck bucket. 1080 × 1350.
+
+   USAGE
+   Drop the generated hero photograph in as the .hero background-image:
+       .hero{ background-image:url('../../assets/hero/a01-fuel-island.jpg') }
+   Everything else — scrim, type, credit block — is already positioned.
+   Safe area is 84px. The hero vehicle must never sit under a scrim.
+   ============================================================ */
+
+.hero{
+  position:absolute; inset:0;
+  background-size:cover; background-position:center;
+  background-color:#0A0C10;              /* shows through until the plate lands */
+}
+
+/* the placeholder state — visible only when no image is set.
+   Delete nothing: once background-image is present it covers this entirely. */
+.hero.placeholder{
+  background-image:
+    linear-gradient(135deg, rgba(255,255,255,.035) 0 2px, rgba(0,0,0,0) 2px 22px),
+    radial-gradient(120% 80% at 50% 34%, #1C2430 0%, #0C1017 58%, #06080C 100%);
+}
+.plate-note{
+  position:absolute; left:0; right:0; top:300px; text-align:center; z-index:2;
+  font-family:'Geist',monospace; font-size:12px; letter-spacing:.30em; text-transform:uppercase;
+  color:rgba(220,228,232,.30); line-height:2.4;
+}
+
+/* ---------- shared chrome ---------- */
+.mark{
+  position:absolute; top:66px; left:84px; z-index:20;
+  font-family:'Geist',monospace; font-weight:700; font-size:12px;
+  letter-spacing:.44em; color:rgba(255,255,255,.90);
+}
+.slate{
+  position:absolute; top:66px; right:84px; z-index:20;
+  font-family:'Geist',monospace; font-size:11.5px; letter-spacing:.24em;
+  text-transform:uppercase; color:rgba(255,255,255,.52);
+}
+
+/* the credit block — the device that turns a photo into an artifact */
+.credits{
+  font-family:'Shoulders',sans-serif; font-weight:400; font-size:13px; line-height:1.44;
+  letter-spacing:.055em; text-transform:uppercase; color:rgba(255,255,255,.46);
+}
+.credits b{ font-weight:700; color:rgba(255,255,255,.66); }
+
+/* ============================================================
+   LOCKUP 1 — LOWER THIRD
+   Image full bleed. Scrim across the bottom 38%. Maximum copy room.
+   ============================================================ */
+.lt .scrim{
+  position:absolute; left:0; right:0; bottom:0; height:52%; z-index:10;
+  background:linear-gradient(180deg, rgba(6,8,12,0) 0%, rgba(6,8,12,.62) 42%,
+                                     rgba(6,8,12,.90) 74%, rgba(6,8,12,.96) 100%);
+}
+.lt .copy{ position:absolute; left:84px; right:84px; bottom:84px; z-index:20; }
+.lt h1{
+  font-family:'Shoulders',sans-serif; font-weight:700; text-transform:uppercase;
+  font-size:96px; line-height:.87; letter-spacing:-.004em; color:#fff;
+}
+.lt h1 em{ font-style:normal; color:#FFB020; }
+.lt .sub{
+  margin-top:20px; font-family:'Instr',sans-serif; font-size:27px;
+  letter-spacing:-.014em; color:rgba(255,255,255,.78);
+}
+.lt .credits{ margin-top:26px; padding-top:18px; border-top:1px solid rgba(255,255,255,.20); }
+
+/* ============================================================
+   LOCKUP 2 — CORNER PLATE
+   Image full bleed, one small solid plate. Maximum image. The Porsche move.
+   ============================================================ */
+.cp .vig{
+  position:absolute; inset:0; z-index:10;
+  background:radial-gradient(115% 78% at 50% 42%, rgba(0,0,0,0) 42%, rgba(0,0,0,.58) 100%);
+}
+.cp .plate{
+  position:absolute; left:84px; bottom:84px; z-index:20;
+  background:#0A0C10; color:#fff; padding:34px 38px 30px; max-width:610px;
+}
+.cp h1{
+  font-family:'Shoulders',sans-serif; font-weight:700; text-transform:uppercase;
+  font-size:60px; line-height:.90; letter-spacing:-.002em;
+}
+.cp h1 em{ font-style:normal; color:#FFB020; }
+.cp .sub{
+  margin-top:14px; font-family:'Instr',sans-serif; font-size:21px;
+  letter-spacing:-.010em; color:rgba(255,255,255,.70);
+}
+.cp .credits{ position:absolute; right:84px; bottom:94px; z-index:20; text-align:right; font-size:12px; }
+
+/* ============================================================
+   LOCKUP 3 — LETTERBOX
+   Image in the centre band, hard flat colour above and below. The A24 move.
+   ============================================================ */
+.lb{ background:#06080C; }
+.lb .hero{ top:212px; bottom:326px; inset-inline:0; }
+.lb .copy{ position:absolute; left:84px; right:84px; bottom:84px; z-index:20; }
+.lb h1{
+  font-family:'Shoulders',sans-serif; font-weight:700; text-transform:uppercase;
+  font-size:82px; line-height:.88; letter-spacing:.004em; color:#fff;
+}
+.lb h1 em{ font-style:normal; color:#FFB020; }
+.lb .sub{
+  margin-top:16px; font-family:'Instr',sans-serif; font-size:24px;
+  letter-spacing:-.012em; color:rgba(255,255,255,.72);
+}
+.lb .credits{ margin-top:22px; padding-top:16px; border-top:1px solid rgba(255,255,255,.18); }
+.lb .topline{
+  position:absolute; left:84px; right:84px; top:104px; z-index:20; display:flex;
+  justify-content:space-between; align-items:baseline;
+  font-family:'Geist',monospace; font-size:11.5px; letter-spacing:.28em;
+  text-transform:uppercase; color:rgba(255,255,255,.46);
+}

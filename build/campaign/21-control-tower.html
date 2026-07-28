@@ -1,0 +1,113 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_fonts.css">
+<!-- 21 CONTROL TOWER — radar scope. Total fidelity to the instrument, zero design flourish. -->
+<style>
+  .a{background:#04120A}
+  .tube{position:absolute;left:50%;top:600px;transform:translate(-50%,-50%);width:900px;height:900px;
+        border-radius:50%;
+        background:radial-gradient(circle, rgba(61,240,122,.055) 0%, rgba(61,240,122,.018) 58%, rgba(0,0,0,0) 74%)}
+  svg{position:absolute;left:50%;top:600px;transform:translate(-50%,-50%)}
+  /* CRT scan lines */
+  .scan{position:absolute;inset:0;pointer-events:none;z-index:20;opacity:.30;
+        background:repeating-linear-gradient(180deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,.55) 3px, rgba(0,0,0,0) 4px)}
+  .vig{position:absolute;inset:0;pointer-events:none;z-index:21;
+       background:radial-gradient(75% 55% at 50% 44%, rgba(0,0,0,0) 40%, rgba(0,0,0,.72) 100%)}
+
+  .hud{position:absolute;top:66px;left:74px;right:74px;display:flex;justify-content:space-between;
+       font-family:'Geist';font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:rgba(61,240,122,.72);z-index:30}
+  .status{position:absolute;left:74px;right:74px;bottom:196px;display:flex;justify-content:space-between;
+          font-family:'Geist';font-size:12.5px;letter-spacing:.24em;text-transform:uppercase;
+          color:rgba(61,240,122,.80);border-top:1px solid rgba(61,240,122,.26);padding-top:16px;z-index:30}
+  .cap{position:absolute;left:74px;right:74px;bottom:96px;
+       font-family:'Geist';font-size:19px;letter-spacing:.06em;color:rgba(61,240,122,.92);line-height:1.55;z-index:30}
+  .cap b{color:#8CFFB6}
+</style></head><body>
+<div class="a">
+  <div class="tube"></div>
+  <svg width="900" height="900" viewBox="0 0 900 900" id="s"></svg>
+  <div class="scan"></div>
+  <div class="vig"></div>
+
+  <div class="hud"><span>LINX &nbsp;/&nbsp; SECTOR CTL</span><span>SWEEP 04 &nbsp;·&nbsp; 0612Z</span></div>
+
+  <div class="status">
+    <span>SECTOR ACTIVE</span><span>14 CONTACTS</span><span>1 ASSIGNED</span><span>0 UNTRACKED</span>
+  </div>
+  <div class="cap">Pilots don&rsquo;t find their own runway.<br><b>That isn&rsquo;t a loss of control. That&rsquo;s what control looks like at scale.</b></div>
+</div>
+
+<script>
+  const NS='http://www.w3.org/2000/svg', s=document.getElementById('s');
+  const cx=450, cy=450, R=396, G='#3DF07A';
+  const el=(n,at)=>{const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);s.appendChild(e);return e;};
+
+  // range rings
+  [0.28,0.50,0.72,0.94].forEach(f=>el('circle',{cx,cy,r:R*f,fill:'none',stroke:G,'stroke-width':1,opacity:.26}));
+  el('circle',{cx,cy,r:R,fill:'none',stroke:G,'stroke-width':2,opacity:.55});
+
+  // bearing rose — a tick every 10°, long every 30°, labelled every 30°
+  for(let d=0;d<360;d+=10){
+    const rad=(d-90)*Math.PI/180, long=d%30===0;
+    const r0=R*(long?0.945:0.965), r1=R;
+    el('line',{x1:cx+r0*Math.cos(rad),y1:cy+r0*Math.sin(rad),
+               x2:cx+r1*Math.cos(rad),y2:cy+r1*Math.sin(rad),
+               stroke:G,'stroke-width':long?1.6:1,opacity:long?.62:.30});
+    if(long){
+      const lr=R*0.895;
+      const t=el('text',{x:cx+lr*Math.cos(rad),y:cy+lr*Math.sin(rad),fill:G,opacity:.52,
+        'font-family':'Geist,monospace','font-size':11,'text-anchor':'middle','dominant-baseline':'central'});
+      t.textContent=String(d).padStart(3,'0');
+    }
+  }
+  // cross hairs
+  el('line',{x1:cx-R,y1:cy,x2:cx+R,y2:cy,stroke:G,'stroke-width':1,opacity:.20});
+  el('line',{x1:cx,y1:cy-R,x2:cx,y2:cy+R,stroke:G,'stroke-width':1,opacity:.20});
+
+  // sweep with phosphor decay trail
+  const sweepDeg=52;
+  const defs=el('defs',{});
+  const grad=document.createElementNS(NS,'linearGradient');
+  grad.setAttribute('id','decay');grad.setAttribute('x1','0');grad.setAttribute('y1','0');
+  grad.setAttribute('x2','1');grad.setAttribute('y2','0');
+  [[0,0],[0.55,0.06],[0.86,0.18],[1,0.42]].forEach(([o,op])=>{
+    const st=document.createElementNS(NS,'stop');
+    st.setAttribute('offset',o);st.setAttribute('stop-color',G);st.setAttribute('stop-opacity',op);
+    grad.appendChild(st);
+  });
+  defs.appendChild(grad);
+  const rad=d=>(d-90)*Math.PI/180;
+  const a0=sweepDeg-64, a1=sweepDeg;
+  el('path',{d:`M${cx} ${cy}L${cx+R*Math.cos(rad(a0))} ${cy+R*Math.sin(rad(a0))}A${R} ${R} 0 0 1 ${cx+R*Math.cos(rad(a1))} ${cy+R*Math.sin(rad(a1))}Z`,
+             fill:'url(#decay)'});
+  el('line',{x1:cx,y1:cy,x2:cx+R*Math.cos(rad(sweepDeg)),y2:cy+R*Math.sin(rad(sweepDeg)),
+             stroke:'#8CFFB6','stroke-width':2,opacity:.92});
+
+  // contacts — lanes and rates, not flight numbers
+  const contacts=[
+    [ 38,0.82,'DFW–ATL','$2.41'],[ 74,0.55,'LAX–PHX','$2.28'],[112,0.88,'CHI–IND','$2.66'],
+    [148,0.42,'MEM–DAL','$2.19'],[176,0.70,'SLC–DEN','$2.52'],[203,0.90,'JAX–SAV','$2.34'],
+    [228,0.36,'OKC–TUL','$2.11'],[251,0.63,'CLT–RDU','$2.48'],[277,0.84,'PDX–SEA','$2.57'],
+    [299,0.48,'BNA–ATL','$2.30'],[318,0.75,'HOU–SAT','$2.44'],[335,0.30,'STL–KCY','$2.22'],
+    [352,0.60,'PHL–BAL','$2.38']
+  ];
+  contacts.forEach(([d,f,lane,rate])=>{
+    const r=rad(d), x=cx+R*f*Math.cos(r), y=cy+R*f*Math.sin(r);
+    // brightness decays with angular distance behind the sweep
+    let behind=(sweepDeg-d+360)%360;
+    const op=Math.max(.16, 1-behind/300);
+    el('rect',{x:x-3.5,y:y-3.5,width:7,height:7,fill:G,opacity:op});
+    el('line',{x1:x+4,y1:y,x2:x+17,y2:y-11,stroke:G,'stroke-width':1,opacity:op*.6});
+    const t=el('text',{x:x+20,y:y-13,fill:G,opacity:op*.86,'font-family':'Geist,monospace','font-size':10.5});
+    t.textContent=lane+'  '+rate;
+  });
+
+  // the assigned contact
+  const ar=rad(sweepDeg-7), ax=cx+R*0.66*Math.cos(ar), ay=cy+R*0.66*Math.sin(ar);
+  el('circle',{cx:ax,cy:ay,r:17,fill:'none',stroke:'#FFC24A','stroke-width':1.6,opacity:.95});
+  el('rect',{x:ax-4.5,y:ay-4.5,width:9,height:9,fill:'#FFC24A'});
+  el('line',{x1:ax+18,y1:ay,x2:ax+40,y2:ay-26,stroke:'#FFC24A','stroke-width':1.2,opacity:.8});
+  const yt=el('text',{x:ax+44,y:ay-30,fill:'#FFC24A','font-family':'Geist,monospace','font-size':15,'font-weight':700});
+  yt.textContent='YOU';
+  const yt2=el('text',{x:ax+44,y:ay-13,fill:'#FFC24A',opacity:.75,'font-family':'Geist,monospace','font-size':10.5});
+  yt2.textContent='ASSIGNED  $2.61';
+</script>
+</body></html>

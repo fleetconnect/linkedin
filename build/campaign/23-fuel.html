@@ -1,0 +1,68 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_fonts.css">
+<!-- 23 FUEL — 1932 Deco petroleum poster. Cassandre. Four inks, flat planes. -->
+<style>
+  .a{background:#EFE2C4}
+  svg{position:absolute;left:0;top:0}
+
+  .ttl{position:absolute;top:790px;left:0;right:0;text-align:center;z-index:5;
+       font-family:'Erica';font-size:196px;line-height:.9;letter-spacing:.02em;color:#1B3A5C}
+  .rule{position:absolute;top:1002px;left:200px;right:200px;height:3px;background:#D4622A;z-index:5}
+  .sub{position:absolute;top:1032px;left:0;right:0;text-align:center;z-index:5;
+       font-family:'Work';font-weight:700;font-size:24px;letter-spacing:.10em;color:#1B3A5C}
+  .foot{position:absolute;bottom:66px;left:96px;right:96px;display:flex;justify-content:space-between;z-index:5;
+        font-family:'Work';font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#7C6A4A}
+</style></head><body>
+<div class="a">
+  <svg width="1080" height="1350" viewBox="0 0 1080 1350" id="s"></svg>
+
+  <div class="brand">Linx Dispatch Services</div>
+  <div class="ttl">FUEL</div>
+  <div class="rule"></div>
+  <div class="sub">NOT EVERYTHING THAT MOVES A TRUCK GOES IN THE TANK</div>
+  <div class="foot"><span>Est. MMXXVI</span><span>All equipment</span><span>Linxdispatch.com</span></div>
+</div>
+
+<script>
+  const NS='http://www.w3.org/2000/svg', s=document.getElementById('s');
+  const el=(n,at,parent)=>{const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);(parent||s).appendChild(e);return e;};
+  const CX=540, CY=460;
+  const BLUE='#1B3A5C', ORANGE='#D4622A', CREAM='#EFE2C4', INK='#241A12';
+
+  // clip everything above the horizon so rays never touch the type
+  const defs=el('defs',{});
+  const cp=el('clipPath',{id:'sky'},defs);
+  el('rect',{x:0,y:0,width:1080,height:742},cp);
+
+  const sky=el('g',{'clip-path':'url(#sky)'});
+
+  // hard-edged deco sunburst — alternating rays, no gradient
+  for(let i=0;i<36;i++){
+    if(i%2) continue;
+    const a0=(i*10-90)*Math.PI/180, a1=((i+1)*10-90)*Math.PI/180, R=1240;
+    el('path',{d:`M${CX} ${CY}L${CX+R*Math.cos(a0)} ${CY+R*Math.sin(a0)}L${CX+R*Math.cos(a1)} ${CY+R*Math.sin(a1)}Z`,
+               fill:ORANGE,opacity:.16},sky);
+  }
+  // stepped concentric arcs — the deco "rising sun"
+  [430,352,274,196].forEach((r,i)=>{
+    el('circle',{cx:CX,cy:CY,r:r,fill:'none',stroke:BLUE,'stroke-width':i===0?7:5,opacity:.90},sky);
+  });
+  el('circle',{cx:CX,cy:CY,r:196,fill:BLUE},sky);
+
+  // the droplet, stylised as pure geometry: a triangle over a half-disc
+  const dg=el('g',{},sky);
+  el('path',{d:`M${CX} ${CY-142}L${CX+82} ${CY+18}L${CX-82} ${CY+18}Z`,fill:CREAM},dg);
+  el('path',{d:`M${CX-82} ${CY+18}A82 82 0 0 0 ${CX+82} ${CY+18}Z`,fill:CREAM},dg);
+  // the highlight facet — one plane, flat colour
+  el('path',{d:`M${CX} ${CY-142}L${CX-40} ${CY+18}L${CX-82} ${CY+18}Z`,fill:ORANGE,opacity:.85},dg);
+
+  // streamlined chevrons beneath, Cassandre speed marks
+  [0,1,2].forEach(i=>{
+    const y=650+i*30, w=300-i*66, t=10;
+    el('path',{d:`M${CX-w} ${y}L${CX} ${y+34}L${CX+w} ${y}L${CX+w} ${y+t}L${CX} ${y+34+t}L${CX-w} ${y+t}Z`,
+               fill:BLUE,opacity:.92-i*.16},sky);
+  });
+
+  // ground rule
+  el('rect',{x:0,y:742,width:1080,height:6,fill:BLUE});
+</script>
+</body></html>

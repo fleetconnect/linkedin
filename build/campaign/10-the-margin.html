@@ -1,0 +1,63 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_fonts.css">
+<!-- 10 THE MARGIN — Swiss book page. The negative space IS the argument. -->
+<style>
+  .a{background:#F5F3EC}
+  /* non-repro blue baseline grid — the printer's working guides */
+  .grid{position:absolute;inset:0;
+        background-image:repeating-linear-gradient(180deg, rgba(184,205,224,.55) 0 1px, rgba(0,0,0,0) 1px 27px),
+                         repeating-linear-gradient(90deg, rgba(184,205,224,.34) 0 1px, rgba(0,0,0,0) 1px 54px)}
+  .mask{position:absolute;inset:0;background:linear-gradient(180deg, rgba(245,243,236,.55) 0%, rgba(245,243,236,.82) 100%)}
+
+  /* crop marks */
+  .cm{position:absolute;width:1px;background:#2A2A28}
+  .cm.h{height:1px;width:22px}
+  .tl1{top:52px;left:80px;height:22px} .tl2{top:80px;left:52px;width:22px;height:1px}
+  .tr1{top:52px;right:80px;height:22px} .tr2{top:80px;right:52px;width:22px;height:1px}
+  .bl1{bottom:52px;left:80px;height:22px} .bl2{bottom:80px;left:52px;width:22px;height:1px}
+  .br1{bottom:52px;right:80px;height:22px} .br2{bottom:80px;right:52px;width:22px;height:1px}
+
+  .run{position:absolute;top:80px;left:80px;font-family:'Work';font-size:9.5px;
+       letter-spacing:.30em;text-transform:uppercase;color:#8C887C}
+  .folio{position:absolute;bottom:78px;left:80px;font-family:'Work';font-size:9.5px;
+         letter-spacing:.24em;color:#8C887C}
+  .mark{position:absolute;top:80px;right:80px;font-family:'Geist';font-weight:700;font-size:10px;
+        letter-spacing:.44em;color:#8C887C}
+
+  /* everything on this page is margin except the part that matters */
+  .block{position:absolute;right:80px;bottom:150px;width:346px}
+  .block .lem{font-family:'Work';font-weight:700;font-size:11px;letter-spacing:.22em;
+              text-transform:uppercase;color:#141412;padding-bottom:7px;border-bottom:1px solid #141412;margin-bottom:12px}
+  .block p{font-family:'Work';font-size:9.5px;line-height:1.78;text-align:justify;color:#1E1E1C;
+           hyphens:auto;margin-bottom:9px}
+  .block p b{font-weight:700}
+  .block .ref{margin-top:12px;font-family:'Work';font-size:8.5px;letter-spacing:.16em;
+              text-transform:uppercase;color:#8C887C;line-height:1.9}
+</style></head><body>
+<div class="a">
+  <div class="grid"></div>
+  <div class="mask"></div>
+
+  <div class="cm tl1"></div><div class="cm tl2"></div>
+  <div class="cm tr1"></div><div class="cm tr2"></div>
+  <div class="cm bl1"></div><div class="cm bl2"></div>
+  <div class="cm br1"></div><div class="cm br2"></div>
+
+  <div class="run">Chapter four — the space around the work</div>
+  <div class="mark">LINX</div>
+  <div class="folio">— 118 —</div>
+
+  <div class="block">
+    <div class="lem">margin, n.</div>
+    <p><b>1.</b> The blank space around the printed area of a page. Traditionally
+      the most generous element of a well-set book, and the only one the reader
+      never notices.</p>
+    <p><b>2.</b> In freight: the difference between a lane at $1.80 and the same
+      lane at $2.40. Not a function of effort, hours, equipment or work ethic.
+      A function of whether anybody was negotiating.</p>
+    <p>Everything on this page is margin except the part that matters. Most
+      owner-operator profit-and-loss statements are set the same way &mdash; and
+      the block keeps getting smaller.</p>
+    <div class="ref">Linx Dispatch Services<br>Free dispatch fit review &nbsp;·&nbsp; linxdispatch.com</div>
+  </div>
+</div>
+</body></html>

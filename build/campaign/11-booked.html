@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_fonts.css">
+<!-- 11 BOOKED — Swiss grid. Must read as a pattern at 40px. -->
+<style>
+  .a{background:#F4F2ED}
+  .top{position:absolute;top:74px;left:88px;right:88px;display:flex;justify-content:space-between;align-items:baseline}
+  .top .m{font-family:'Geist';font-weight:700;font-size:12px;letter-spacing:.42em;color:#111114}
+  .top .d{font-family:'Geist';font-size:12px;letter-spacing:.20em;color:#8A877E;text-transform:uppercase}
+
+  .grid{position:absolute;top:178px;left:88px;right:88px;
+        display:grid;grid-template-columns:repeat(7,1fr);gap:14px}
+  .cell{aspect-ratio:1/1.18;background:#1F4D3D}
+  .cell.off{background:transparent;border:1.5px solid #111114}
+
+  .days{position:absolute;top:150px;left:88px;right:88px;
+        display:grid;grid-template-columns:repeat(7,1fr);gap:14px}
+  .days span{font-family:'Geist';font-size:11px;letter-spacing:.18em;color:#8A877E;text-transform:uppercase}
+
+  .word{position:absolute;left:88px;bottom:196px;
+        font-family:'Work';font-weight:700;font-size:104px;line-height:.86;
+        letter-spacing:-.032em;color:#111114}
+  .sub{position:absolute;left:88px;right:88px;bottom:118px;
+       font-family:'Work';font-size:23px;letter-spacing:-.014em;color:#4A473F}
+  .key{position:absolute;right:88px;bottom:196px;text-align:right}
+  .key div{font-family:'Geist';font-size:11px;letter-spacing:.17em;text-transform:uppercase;
+           color:#4A473F;line-height:2.5;display:flex;align-items:center;gap:10px;justify-content:flex-end}
+  .key i{display:block;width:15px;height:15px}
+  .key i.on{background:#1F4D3D}
+  .key i.no{border:1.5px solid #111114}
+</style></head><body>
+<div class="a">
+  <div class="top"><div class="m">LINX</div><div class="d">Four weeks · Mon 03 — Sun 30</div></div>
+
+  <div class="days"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+  <div class="grid" id="g"></div>
+
+  <div class="word">BOOKED</div>
+  <div class="sub">Weekdays covered. Weekends deliberate.</div>
+
+  <div class="key">
+    <div><span>Booked</span><i class="on"></i></div>
+    <div><span>Yours</span><i class="no"></i></div>
+  </div>
+</div>
+<script>
+  const g=document.getElementById('g');
+  for(let w=0;w<4;w++) for(let d=0;d<7;d++){
+    const c=document.createElement('div');
+    c.className='cell'+(d>4?' off':'');
+    g.appendChild(c);
+  }
+</script>
+</body></html>

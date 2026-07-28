@@ -1,0 +1,65 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_fonts.css">
+<!-- 22 THE WHEEL NEVER STOPS — Swiss constructivist. Generated, not drawn. -->
+<style>
+  .a{background:#F2F0E9}
+  svg{position:absolute;left:50%;top:566px;transform:translate(-50%,-50%)}
+  .mark{position:absolute;top:74px;left:88px;font-family:'Geist';font-weight:700;font-size:12px;letter-spacing:.42em;color:#151517}
+  .idx{position:absolute;top:74px;right:88px;font-family:'Geist';font-size:12px;letter-spacing:.22em;color:#9A968A;text-transform:uppercase}
+  .ttl{position:absolute;left:88px;bottom:212px;font-family:'Work';font-weight:700;
+       font-size:66px;line-height:.94;letter-spacing:-.030em;color:#151517;text-transform:uppercase}
+  .sub{position:absolute;left:88px;right:88px;bottom:136px;font-family:'Work';font-size:22px;
+       letter-spacing:-.012em;color:#55524A}
+  .leg{position:absolute;right:88px;bottom:212px;text-align:right;
+       font-family:'Geist';font-size:11px;letter-spacing:.17em;text-transform:uppercase;color:#55524A;line-height:2.4}
+  .leg i{display:inline-block;width:13px;height:13px;margin-left:9px;vertical-align:-2px}
+</style></head><body>
+<div class="a">
+  <div class="mark">LINX</div>
+  <div class="idx">Fig. 22 — Ten weeks</div>
+
+  <svg width="880" height="880" viewBox="0 0 880 880" id="s"></svg>
+
+  <div class="ttl">The wheel<br>never stops</div>
+  <div class="sub">Neither does the phone.<br>One of those is negotiable.</div>
+  <div class="leg">
+    <div>Booked <i style="background:#E0492E"></i></div>
+    <div>Empty <i style="border:1.5px solid #151517"></i></div>
+  </div>
+</div>
+<script>
+  const NS='http://www.w3.org/2000/svg', s=document.getElementById('s');
+  const cx=440, cy=440, RINGS=9, SEG=24, GAP=2.2;   // degrees of gap between segments
+
+  // Each ring is a week; each segment a load. Filled segments align into one radial spoke.
+  function arc(r0,r1,a0,a1){
+    const rad=d=>(d-90)*Math.PI/180;
+    const p=(r,a)=>[cx+r*Math.cos(rad(a)), cy+r*Math.sin(rad(a))];
+    const [x0,y0]=p(r1,a0),[x1,y1]=p(r1,a1),[x2,y2]=p(r0,a1),[x3,y3]=p(r0,a0);
+    const large=(a1-a0)>180?1:0;
+    return `M${x0} ${y0}A${r1} ${r1} 0 ${large} 1 ${x1} ${y1}L${x2} ${y2}A${r0} ${r0} 0 ${large} 0 ${x3} ${y3}Z`;
+  }
+
+  for(let ring=0; ring<RINGS; ring++){
+    const r1 = 424 - ring*44;
+    const r0 = r1 - 33;
+    for(let i=0;i<SEG;i++){
+      const a0 = i*(360/SEG) + GAP/2, a1 = (i+1)*(360/SEG) - GAP/2;
+      const path=document.createElementNS(NS,'path');
+      path.setAttribute('d', arc(r0,r1,a0,a1));
+
+      // the spoke: a contiguous run of filled segments that widens toward the centre
+      const spokeHalf = 1 + Math.floor(ring*0.55);
+      const inSpoke = (i <= spokeHalf) || (i >= SEG - spokeHalf);
+      if(inSpoke){ path.setAttribute('fill','#E0492E'); }
+      else { path.setAttribute('fill','none');
+             path.setAttribute('stroke','#151517');
+             path.setAttribute('stroke-width','1.4'); }
+      s.appendChild(path);
+    }
+  }
+  // the hub
+  const hub=document.createElementNS(NS,'circle');
+  hub.setAttribute('cx',cx);hub.setAttribute('cy',cy);hub.setAttribute('r',22);
+  hub.setAttribute('fill','#151517');s.appendChild(hub);
+</script>
+</body></html>

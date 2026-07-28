@@ -1,0 +1,37 @@
+/* Font declarations only. There is deliberately NO shared design system here —
+   each artifact casts its own typography, palette and grid. See ART-DIRECTION.md §4. */
+@font-face{font-family:'Shoulders';src:url('../../assets/fonts/BigShoulders-Bold.ttf');font-weight:700}
+@font-face{font-family:'Shoulders';src:url('../../assets/fonts/BigShoulders-Regular.ttf');font-weight:400}
+@font-face{font-family:'Erica';src:url('../../assets/fonts/EricaOne-Regular.ttf')}
+@font-face{font-family:'Boldonse';src:url('../../assets/fonts/Boldonse-Regular.ttf')}
+@font-face{font-family:'Italiana';src:url('../../assets/fonts/Italiana-Regular.ttf')}
+@font-face{font-family:'Gloock';src:url('../../assets/fonts/Gloock-Regular.ttf')}
+@font-face{font-family:'Crimson';src:url('../../assets/fonts/CrimsonPro-Regular.ttf');font-weight:400}
+@font-face{font-family:'Crimson';src:url('../../assets/fonts/CrimsonPro-Bold.ttf');font-weight:700}
+@font-face{font-family:'PlexSerif';src:url('../../assets/fonts/IBMPlexSerif-Regular.ttf');font-weight:400}
+@font-face{font-family:'PlexSerif';src:url('../../assets/fonts/IBMPlexSerif-Bold.ttf');font-weight:700}
+@font-face{font-family:'JBMono';src:url('../../assets/fonts/JetBrainsMono-Regular.ttf');font-weight:400}
+@font-face{font-family:'JBMono';src:url('../../assets/fonts/JetBrainsMono-Bold.ttf');font-weight:700}
+@font-face{font-family:'DMMono';src:url('../../assets/fonts/DMMono-Regular.ttf')}
+@font-face{font-family:'Geist';src:url('../../assets/fonts/GeistMono-Regular.ttf');font-weight:400}
+@font-face{font-family:'Geist';src:url('../../assets/fonts/GeistMono-Bold.ttf');font-weight:700}
+@font-face{font-family:'Work';src:url('../../assets/fonts/WorkSans-Regular.ttf');font-weight:400}
+@font-face{font-family:'Work';src:url('../../assets/fonts/WorkSans-Bold.ttf');font-weight:700}
+@font-face{font-family:'Outfit';src:url('../../assets/fonts/Outfit-Regular.ttf');font-weight:400}
+@font-face{font-family:'Outfit';src:url('../../assets/fonts/Outfit-Bold.ttf');font-weight:700}
+@font-face{font-family:'Instr';src:url('../../assets/fonts/InstrumentSans-Regular.ttf');font-weight:400}
+@font-face{font-family:'Instr';src:url('../../assets/fonts/InstrumentSans-Bold.ttf');font-weight:700}
+@font-face{font-family:'YoungSerif';src:url('../../assets/fonts/YoungSerif-Regular.ttf')}
+@font-face{font-family:'Baskerville';src:url('../../assets/fonts/LibreBaskerville-Regular.ttf')}
+@font-face{font-family:'Poiret';src:url('../../assets/fonts/PoiretOne-Regular.ttf')}
+@font-face{font-family:'Tektur';src:url('../../assets/fonts/Tektur-Medium.ttf')}
+@font-face{font-family:'NatPark';src:url('../../assets/fonts/NationalPark-Bold.ttf')}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1350px}
+.a{position:relative;width:1080px;height:1350px;overflow:hidden}
+
+/* paper / print grain, used only by the print-genre pieces */
+.grain{position:absolute;inset:0;pointer-events:none;z-index:90;opacity:.07;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>")}
+.grain.screen{mix-blend-mode:overlay;opacity:.05}

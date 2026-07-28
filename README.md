@@ -1,4 +1,20 @@
-# Linx Dispatch — LinkedIn Creative Set
+# Linx Dispatch — Creative
+
+Three bodies of work, in the order they were made:
+
+| Directory | What it is |
+|---|---|
+| [`out/`](out/) | **Set 1** — ten direct-response LinkedIn creatives (*Freight Ledger*) |
+| [`campaign/`](campaign/) | **Set 2** — the 30-concept editorial campaign book + art direction |
+| [`campaign/CINEMATIC.md`](campaign/CINEMATIC.md) | **Set 3** — the 80/10/10 hero-truck campaign. Current direction. |
+| [`out/campaign/`](out/campaign/) | Rendered pieces from sets 2 and 3 |
+
+**Start with [`campaign/CINEMATIC.md`](campaign/CINEMATIC.md)** — it is the live brief.
+`campaign/ART-DIRECTION.md` holds the craft rules all of it obeys.
+
+---
+
+## Set 1 — Freight Ledger
 
 Ten conversion-oriented creatives targeting truck owners (owner-operators and
 small fleets, 1–10 trucks) for **Linx Dispatch**'s Free Dispatch Fit Review offer.
