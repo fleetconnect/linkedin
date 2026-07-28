@@ -1,0 +1,91 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  .body{ padding-top:40px; padding-bottom:30px; }
+
+  /* a real sheet of paper, lying on asphalt */
+  .doc{ background:var(--paper); color:var(--ink); padding:46px 46px 40px;
+        flex:1; display:flex; flex-direction:column; position:relative;
+        box-shadow:0 26px 54px rgba(0,0,0,.42); }
+
+  .dh{ display:flex; justify-content:space-between; align-items:flex-start;
+       padding-bottom:22px; border-bottom:2px solid var(--ink); }
+  .dh .l .t{ font-family:'Shoulders'; font-weight:700; text-transform:uppercase; font-size:56px; line-height:.9; color:var(--ink); }
+  .dh .l .s{ font-family:'Mono',monospace; font-size:12.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--slate-d); margin-top:10px; }
+  .dh .r{ text-align:right; font-family:'Mono',monospace; font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--slate-d); line-height:2; }
+
+  .li{ display:flex; align-items:baseline; gap:18px; padding:25px 0; border-bottom:1px solid rgba(10,15,26,.13); }
+  .li .d{ flex:1; }
+  .li .d .t{ font-family:'Instr'; font-size:24px; letter-spacing:-.01em; color:var(--ink); line-height:1.3; }
+  .li .d .n{ font-family:'Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--slate-d); margin-top:7px; }
+  .li .a{ font-family:'Mono',monospace; font-weight:700; font-size:22px; letter-spacing:.02em; color:var(--ink); white-space:nowrap; }
+
+  .paid{ position:absolute; right:52px; bottom:250px; transform:rotate(-11deg);
+         border:3px solid rgba(29,91,255,.42); color:rgba(29,91,255,.50);
+         font-family:'Shoulders'; font-weight:700; text-transform:uppercase; font-size:52px; line-height:1;
+         padding:12px 24px 10px; letter-spacing:.04em; }
+  .paid small{ display:block; font-family:'Mono',monospace; font-size:10.5px; letter-spacing:.20em;
+               margin-top:4px; opacity:.85; }
+
+  .tot{ margin-top:auto; display:flex; justify-content:space-between; align-items:flex-end;
+        background:var(--ink); color:var(--paper); padding:30px 34px; }
+  .tot .l{ font-family:'Mono',monospace; font-size:13px; letter-spacing:.24em; text-transform:uppercase; opacity:.62; padding-bottom:12px; }
+  .tot .r{ text-align:right; }
+  .tot .v{ font-family:'Shoulders'; font-weight:700; font-size:88px; line-height:.84; color:var(--amber); }
+  .tot .c{ font-family:'Mono',monospace; font-size:11.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--paper); opacity:.55; margin-top:11px; }
+</style></head><body>
+<div class="canvas dark">
+  <div class="head">
+    <div class="mark">LIN<span class="x">X</span> DISPATCH</div>
+    <div class="file">File 07 — Statement</div>
+  </div>
+
+  <div class="body">
+    <div class="doc">
+      <div class="dh">
+        <div class="l">
+          <div class="t">Invoice:<br>Self-dispatch</div>
+          <div class="s">The bill nobody sends you</div>
+        </div>
+        <div class="r">
+          Billed to · You<br>
+          Terms · Every month<br>
+          Period · Ongoing
+        </div>
+      </div>
+
+      <div class="li">
+        <div class="d"><div class="t">Loads booked under market</div><div class="n">Because there was no time to counter</div></div>
+        <div class="a">$900 – $1,600</div>
+      </div>
+      <div class="li">
+        <div class="d"><div class="t">Deadhead that wasn&rsquo;t planned out</div><div class="n">Empty miles between mismatched lanes</div></div>
+        <div class="a">$450 – $900</div>
+      </div>
+      <div class="li">
+        <div class="d"><div class="t">Hours spent not driving</div><div class="n">Load boards, packets, check calls, chasing PODs</div></div>
+        <div class="a">$400 – $1,000</div>
+      </div>
+      <div class="li">
+        <div class="d"><div class="t">Negotiations never had</div><div class="n">One driver vs. a desk that does this all day</div></div>
+        <div class="a">$250 – $500</div>
+      </div>
+
+      <div class="paid">Paid<small>In full · Every month</small></div>
+
+      <div class="tot">
+        <div class="l">Total due</div>
+        <div class="r">
+          <div class="v">$2,000–$4,000</div>
+          <div class="c">Per month · Estimated cost of broken dispatch</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot signal">
+    <div class="cta">Stop paying it</div>
+    <div class="url">Free fit review · linxdispatch.com</div>
+  </div>
+  <div class="grain"></div>
+</div>
+</body></html>

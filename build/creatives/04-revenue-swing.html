@@ -1,0 +1,112 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  .body{ padding-top:52px; }
+  h1{ font-family:'Shoulders'; font-weight:700; text-transform:uppercase; font-size:88px; line-height:.88; letter-spacing:-.005em; }
+  h1 em{ font-style:normal; color:var(--amber); }
+  .dek{ margin-top:22px; font-family:'Instr'; font-size:25px; line-height:1.42; letter-spacing:-.01em; color:rgba(242,238,229,.70); max-width:790px; }
+
+  /* ---- chart ---- */
+  .chart{ margin-top:40px; }
+  .legend{ display:flex; gap:34px; align-items:center; margin-bottom:22px; }
+  .legend .it{ display:flex; align-items:center; gap:11px; }
+  .legend .sw{ width:15px; height:15px; border-radius:3px; }
+  .legend .lb{ font-family:'Mono',monospace; font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:rgba(242,238,229,.80); }
+
+  .plot{ position:relative; height:436px; }
+  .grid{ position:absolute; inset:0; }
+  .grid .g{ position:absolute; left:74px; right:0; height:1px; background:rgba(242,238,229,.09); }
+  .grid .g.base{ background:rgba(242,238,229,.34); }
+  .grid .yl{ position:absolute; left:0; transform:translateY(-50%);
+             font-family:'Mono',monospace; font-size:12.5px; letter-spacing:.10em; color:rgba(242,238,229,.42); }
+
+  .bars{ position:absolute; left:74px; right:0; bottom:0; top:0; display:flex; align-items:flex-end; gap:0; }
+  .wk{ flex:1; height:100%; display:flex; align-items:flex-end; justify-content:center; gap:2px; padding:0 5px; position:relative; }
+  .bar{ width:19px; border-radius:4px 4px 0 0; }
+  .bar.a{ background:var(--steel); }
+  .bar.b{ background:var(--amber-d); }
+  .dl{ position:absolute; left:50%; transform:translateX(-50%);
+       font-family:'Mono',monospace; font-weight:700; font-size:13px; letter-spacing:.03em; white-space:nowrap; }
+
+  .xax{ display:flex; margin-left:74px; margin-top:12px; }
+  .xax .x{ flex:1; text-align:center; font-family:'Mono',monospace; font-size:12px; letter-spacing:.12em; color:rgba(242,238,229,.36); }
+
+  .note{ margin-top:26px; padding-top:20px; border-top:1px solid var(--hair);
+         font-family:'Mono',monospace; font-size:12.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--slate-d); line-height:1.75; }
+  .kicker{ margin-top:22px; font-family:'Shoulders'; font-weight:700; text-transform:uppercase; font-size:46px; line-height:.98; }
+  .kicker em{ font-style:normal; color:var(--amber); }
+</style></head><body>
+<div class="canvas dark">
+  <div class="head">
+    <div class="mark">LIN<span class="x">X</span> DISPATCH</div>
+    <div class="file">File 04 — Weekly Gross</div>
+  </div>
+
+  <div class="body">
+    <h1>Some weeks $6,000.<br><em>Some weeks $2,800.</em></h1>
+    <div class="dek">You can&rsquo;t buy a truck, hire a driver, or plan a month on a number
+      that swings by half. Consistency isn&rsquo;t luck &mdash; it&rsquo;s who&rsquo;s booking your week.</div>
+
+    <div class="chart">
+      <div class="legend">
+        <div class="it"><span class="sw" style="background:#4A6BAD"></span><span class="lb">Booking it yourself</span></div>
+        <div class="it"><span class="sw" style="background:#C2840B"></span><span class="lb">Dispatch-supported</span></div>
+      </div>
+
+      <div class="plot">
+        <div class="grid" id="grid"></div>
+        <div class="bars" id="bars"></div>
+      </div>
+      <div class="xax" id="xax"></div>
+
+      <div class="note">Illustrative pattern, not a performance guarantee — it maps the<br>
+        swing owner-operators describe before and after dispatch support.</div>
+      <div class="kicker">Same truck. Same driver.<br><em>Different week.</em></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="cta">Free Dispatch Fit Review</div>
+    <div class="url">linxdispatch.com</div>
+  </div>
+  <div class="grain"></div>
+</div>
+
+<script>
+  const self_ = [6000,2800,5100,3400,6300,2400,4800,5600,2900,5200];
+  const linx  = [5400,5900,5600,6100,5800,6200,5700,6300,6000,6400];
+  const MAX = 7000, H = 436;
+
+  const grid = document.getElementById('grid');
+  [0,2000,4000,6000].forEach(v=>{
+    const y = H - (v/MAX)*H;
+    const g = document.createElement('div');
+    g.className = 'g' + (v===0 ? ' base' : '');
+    g.style.top = y + 'px';
+    grid.appendChild(g);
+    const l = document.createElement('div');
+    l.className = 'yl'; l.style.top = y + 'px';
+    l.textContent = v === 0 ? '$0' : '$' + (v/1000).toFixed(v%1000?1:0) + 'k';
+    grid.appendChild(l);
+  });
+
+  const bars = document.getElementById('bars'), xax = document.getElementById('xax');
+  self_.forEach((v,i)=>{
+    const wk = document.createElement('div'); wk.className = 'wk';
+    const a = document.createElement('div'); a.className='bar a'; a.style.height = (v/MAX*H)+'px';
+    const b = document.createElement('div'); b.className='bar b'; b.style.height = (linx[i]/MAX*H)+'px';
+    wk.appendChild(a); wk.appendChild(b);
+    // selective direct labels: only the peak and the trough of the volatile series
+    if (v === 6300 || v === 2400) {
+      const d = document.createElement('div'); d.className='dl';
+      d.style.bottom = (v/MAX*H + 12)+'px';
+      // anchor over series-A's bar, not the group centre, so it never sits on series B
+      d.style.transform = 'translateX(-50%) translateX(-10.5px)';
+      d.style.color = '#8FA6D6';
+      d.textContent = '$' + v.toLocaleString();
+      wk.appendChild(d);
+    }
+    bars.appendChild(wk);
+    const x = document.createElement('div'); x.className='x'; x.textContent = 'W'+(i+1); xax.appendChild(x);
+  });
+</script>
+</body></html>

@@ -1,0 +1,54 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  .body{ padding-top:64px; }
+  .stamp{ display:flex; align-items:flex-end; gap:26px; }
+  .stamp .t{ font-family:'Shoulders'; font-weight:700; font-size:250px; line-height:.76; letter-spacing:-.018em; color:var(--amber); }
+  .stamp .m{ padding-bottom:26px; }
+  .stamp .m div{ font-family:'Mono',monospace; font-size:14px; letter-spacing:.24em; text-transform:uppercase; color:var(--slate); line-height:2.05; }
+  .sub{ margin:34px 0 40px; font-family:'Shoulders'; font-weight:700; text-transform:uppercase; font-size:60px; line-height:.94; letter-spacing:-.002em; }
+  .log{ border-top:1px solid var(--hair); }
+  .lg{ display:flex; align-items:center; gap:26px; padding:19px 0; border-bottom:1px solid var(--hair); }
+  .lg .tm{ font-family:'Mono',monospace; font-weight:700; font-size:19px; letter-spacing:.06em; width:104px; flex:0 0 104px; color:var(--paper); }
+  .lg .ds{ font-family:'Instr'; font-size:25px; letter-spacing:-.008em; flex:1; color:rgba(242,238,229,.80); }
+  .lg .tg{ font-family:'Mono',monospace; font-size:12.5px; letter-spacing:.20em; text-transform:uppercase; color:var(--slate); }
+  .lg.hot .tm{ color:var(--amber); }
+  .lg.hot .ds{ color:var(--paper); }
+  .close{ margin-top:46px; font-family:'Instr'; font-size:31px; line-height:1.36; letter-spacing:-.012em; }
+  .close b{ color:var(--amber); font-weight:700; }
+</style></head><body>
+<div class="canvas dark">
+  <div class="head">
+    <div class="mark">LIN<span class="x">X</span> DISPATCH</div>
+    <div class="file">File 02 — Hours of Service</div>
+  </div>
+
+  <div class="body">
+    <div class="stamp">
+      <div class="t">11:47</div>
+      <div class="m">
+        <div>PM</div>
+        <div>Engine off</div>
+        <div>Still working</div>
+      </div>
+    </div>
+
+    <div class="sub">Your day ended six hours ago.<br>Your job didn&rsquo;t.</div>
+
+    <div class="log">
+      <div class="lg"><span class="tm">18:12</span><span class="ds">Delivered. Doors closed. Clock stopped.</span><span class="tg">Driving</span></div>
+      <div class="lg"><span class="tm">20:41</span><span class="ds">Scrolling the load board for tomorrow</span><span class="tg">Unpaid</span></div>
+      <div class="lg"><span class="tm">21:58</span><span class="ds">Carrier packet. Again. Third one this week.</span><span class="tg">Unpaid</span></div>
+      <div class="lg"><span class="tm">22:30</span><span class="ds">Broker: &ldquo;I&rsquo;ll get back to you in the morning&rdquo;</span><span class="tg">Unpaid</span></div>
+      <div class="lg hot"><span class="tm">23:47</span><span class="ds">Took the load. Didn&rsquo;t have the energy to negotiate.</span><span class="tg">Costly</span></div>
+    </div>
+
+    <div class="close">A dispatcher works those hours <b>so you don&rsquo;t have to.</b></div>
+  </div>
+
+  <div class="foot">
+    <div class="cta">Free Dispatch Fit Review</div>
+    <div class="url">linxdispatch.com</div>
+  </div>
+  <div class="grain"></div>
+</div>
+</body></html>

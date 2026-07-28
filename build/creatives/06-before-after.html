@@ -1,0 +1,74 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  .canvas{ background:var(--ink); }
+  .head{ color:var(--paper); }
+  .split{ flex:1 1 auto; display:flex; min-height:0; }
+  .col{ flex:1; padding:44px var(--M) 0; display:flex; flex-direction:column; }
+  .col.a{ background:var(--ink); color:var(--paper); padding-right:44px; }
+  .col.b{ background:var(--paper); color:var(--ink); padding-left:44px; }
+
+  .ttl{ font-family:'Shoulders'; font-weight:700; text-transform:uppercase; font-size:66px; line-height:.9; }
+  .col.a .ttl{ color:var(--slate); }
+  .col.b .ttl{ color:var(--signal); }
+  .sub{ font-family:'Mono',monospace; font-size:12.5px; letter-spacing:.24em; text-transform:uppercase; margin-top:12px; opacity:.55; }
+  .hr{ height:2px; margin:26px 0 4px; }
+  .col.a .hr{ background:var(--slate); opacity:.5; }
+  .col.b .hr{ background:var(--signal); }
+
+  li{ list-style:none; display:flex; gap:16px; padding:39px 0; }
+  .col.a li{ border-bottom:1px solid rgba(242,238,229,.13); }
+  .col.b li{ border-bottom:1px solid rgba(10,15,26,.13); }
+  li .n{ font-family:'Mono',monospace; font-size:12px; letter-spacing:.10em; opacity:.42; padding-top:5px; flex:0 0 22px; }
+  li .t{ font-family:'Instr'; font-size:21.5px; line-height:1.36; letter-spacing:-.01em; }
+  .col.a li .t{ color:rgba(242,238,229,.80); }
+  .col.b li .t{ color:var(--ink); }
+  li .t b{ font-weight:700; }
+  .col.a li .t b{ color:var(--paper); }
+
+  .stamp{ margin-top:auto; padding:22px 0 40px; font-family:'Shoulders'; font-weight:700; text-transform:uppercase; font-size:46px; line-height:.96; }
+  .col.a .stamp{ color:var(--slate); }
+  .col.b .stamp{ color:var(--signal); }
+</style></head><body>
+<div class="canvas dark">
+  <div class="head">
+    <div class="mark">LIN<span class="x">X</span> DISPATCH</div>
+    <div class="file">File 06 — Side by Side</div>
+  </div>
+
+  <div class="split">
+    <div class="col a">
+      <div class="ttl">Before</div>
+      <div class="sub">Booking your own week</div>
+      <div class="hr"></div>
+      <ul>
+        <li><span class="n">01</span><span class="t">You said yes to <b>$1.80</b> because you didn&rsquo;t have time to negotiate</span></li>
+        <li><span class="n">02</span><span class="t">Answering emails at 11pm from a truck stop parking lot</span></li>
+        <li><span class="n">03</span><span class="t">&ldquo;That&rsquo;s the best I can do&rdquo; &mdash; and you believed him</span></li>
+        <li><span class="n">04</span><span class="t">You started this to be your own boss. You work for <b>everyone else</b></span></li>
+        <li><span class="n">05</span><span class="t">$6k weeks. $2,800 weeks. <b>You can&rsquo;t plan anything</b></span></li>
+      </ul>
+      <div class="stamp">A dispatch<br>problem.</div>
+    </div>
+
+    <div class="col b">
+      <div class="ttl">After</div>
+      <div class="sub">Booking it with Linx</div>
+      <div class="hr"></div>
+      <ul>
+        <li><span class="n">01</span><span class="t">Loads sourced before your shift starts &mdash; <b>your lanes</b>, not leftovers</span></li>
+        <li><span class="n">02</span><span class="t">Broker pushback handled by someone who does it <b>full time</b></span></li>
+        <li><span class="n">03</span><span class="t">Rate cons, check calls and paperwork <b>leave your cab</b></span></li>
+        <li><span class="n">04</span><span class="t">You know what next week looks like. <b>You planned it</b></span></li>
+        <li><span class="n">05</span><span class="t">Revenue stops being a surprise. It becomes <b>a schedule</b></span></li>
+      </ul>
+      <div class="stamp">A dispatch<br>partner.</div>
+    </div>
+  </div>
+
+  <div class="foot solid">
+    <div class="cta">Free Dispatch Fit Review</div>
+    <div class="url">linxdispatch.com</div>
+  </div>
+  <div class="grain"></div>
+</div>
+</body></html>
