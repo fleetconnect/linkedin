@@ -1,178 +1,161 @@
 # FLEETCONNECT — COPY DECK
 
-Six single ads and three carousels. All 1080 × 1350 (4:5), exported at 2× → 2160 × 2700.
-Renders in [`../out/fc/`](../out/fc/) · source in [`../build/fc/`](../build/fc/) ·
-rebuild with `python3 build/fc/gen.py && ./build/render-fc.sh`
+Six single ads and three six-slide carousels. 1080 × 1350 (4:5), exported at 2×.
+Renders in [`../out/fc/`](../out/fc/) · source in [`../build/fc/`](../build/fc/)
+Rebuild: `python3 build/fc/gen.py && ./build/render-fc.sh`
 
-> **Before anything runs:** no creative carries a URL, because `fleetconnect.pro` has
-> expired and is on a Porkbun auction page. Put the live domain in `FOOT_R` at the top
-> of `build/fc/gen.py`, regenerate, re-render. Do not ship these pointing at a dead
-> domain.
+Built against the live site: **https://fleet-connect-gray.vercel.app/**
+Read [`ART-DIRECTION.md`](ART-DIRECTION.md) first.
 
 ---
 
-## The argument the whole set makes
+## The strategy in one line
 
-Fleet owners think they have a **volume** problem — not enough applicants. They have a
-**latency** problem. A driver applies to five or six carriers in one sitting, usually
-at night, and signs with whoever calls back first. Not the best offer. The first one.
+Five audiences, one problem. **Everyone in trucking is looking for someone** —
+drivers, owner-operators, carriers, shippers or customers — and almost all of it still
+runs on referrals, cold lists and luck. FleetConnect installs and operates the system
+that finds them.
 
-Every piece below resolves to that and nothing else.
+The CTA is the site's own and does the segmentation for you: **"Tell us who you need
+to find."**
 
 ---
 
 # SINGLE ADS
 
-## FC01 · GHOST — *the hero line, lead with this*
-**On-image:** They didn't ghost you. **Somebody called first.**
-**Sub:** A driver applies to five carriers in one sitting, usually at night, and signs
-with whoever answers. Not the best offer. The first one.
+### FC01 · EVERYONE — *the platform ad, lead with this*
+Everyone in trucking is **looking for someone.**
 
-> Every fleet owner I talk to says the same thing: "drivers ghost."
+> Carriers need drivers. Dispatchers need carriers. Brokers need shippers. Insurance,
+> factoring and compliance all need customers who happen to own trucks.
 >
-> They don't. They apply to five or six carriers in one sitting, usually after they
-> shut down for the night, and they take the first callback. Not the best pay package.
-> Not the newest equipment. The first phone call.
+> Same problem, five different words for it — and almost everyone is solving it by
+> hand, on referrals and a cold list somebody bought in March.
+
+### FC02 · WHO — *the clearest expression of the offer*
+Tell us who you need to **find.** → Drivers · Owner-Operators · Carriers · Shippers · Customers
+
+> One system. Configured for whichever one you're short of.
 >
-> Your applicant didn't disappear. He got hired on Tuesday by somebody who answered on
-> Monday.
+> Pick the row that's costing you money right now and we'll show you what the install
+> looks like for it.
 
-## FC02 · EMPTY
-**On-image:** EMPTY (outlined, alert red) · 19 days parked / 0 loads hauled / 0 costs paused
-**Sub:** A truck with nobody in it still makes a payment, still carries plates, still
-insures, still depreciates. It just doesn't earn.
+### FC03 · CAREERS PAGE — *driver acquisition proof*
+Turned a dead careers page into **a steady flow.** → 40–120 applications/month
 
-> The cost of an open seat isn't the recruiting spend. It's the unit sitting in your
-> yard with a payment, plates, insurance and depreciation all running at full speed and
-> nothing coming the other way.
+> A regional carrier had a careers page nobody had touched in a year and a hiring
+> problem they blamed on the market.
 >
-> Nineteen days is a long time to pay for a truck that hasn't moved.
+> The market was fine. The page was dead, and nothing was following up with the people
+> who did apply.
 
-## FC03 · 03:47
-**On-image:** 03:47 (lime) · "When your best applicant applied"
-Log: He applies Sat 3:47am → ANSWERED · Your recruiter opens the inbox Mon 8:00am →
-+52 HRS · He started somewhere else Mon 6:00am → GONE
+### FC04 · REFERRALS — *carrier acquisition proof*
+Referrals aren't a growth plan. **They're a queue you don't control.** → 15–40 qualified
+owner-operator conversations/month
 
-> Your best applicants apply at 3am, because that's when they shut down.
+> Ask a dispatch company where their last ten carriers came from. Almost always: someone
+> knew someone.
 >
-> Your office opens at eight, on Monday. By then he's fifty-two hours into somebody
-> else's onboarding.
+> That works right up until the month nobody refers anybody.
+
+### FC05 · INSTALL — *substance / objection handling*
+We don't hand you leads. **We install the system.** → all eleven parts
+
+> Eleven parts: targeting, sourcing, outreach, application funnel, CRM, qualification,
+> scheduling, follow-up, reactivation, reporting, optimization.
 >
-> The gap between when drivers apply and when fleets answer is where most of the
-> recruiting budget actually goes.
+> Built for your market and your lanes, then operated. The difference between buying
+> leads and owning a pipeline.
 
-## FC04 · SIX CARRIERS
-**On-image:** He applied to six carriers before lunch. **You were fourth to call.**
-Race log ending: HE SIGNED WITH CARRIER B — 12:00
+### FC06 · OFFER — *the close*
+Live in 30 days, or we keep working **at no extra fee.** → $3,500–$7,500 install ·
+3 installs/month · 30-day activation guarantee
 
-> Carrier B didn't beat you on pay. They beat you by seven hours.
+> Install is $3,500–$7,500 depending on configuration. Ongoing management is priced to
+> volume, channels and markets.
 >
-> This is the whole game and almost nobody scores it this way. You are not competing on
-> your package. You are competing on your response time, against five other fleets
-> looking at the same application.
-
-## FC05 · SECONDS
-**On-image:** A driver applied on Saturday night. → Your inbox: **Monday 8:00am** /
-Answered in: **Seconds**
-**Tail:** Recruiting is not a volume problem. It is a latency problem.
-
-> Two fleets got the same application at 11:41 on a Saturday night.
+> Three new installs a month, and that's the whole capacity.
 >
-> One answered in seconds. One answered in fifty-six hours.
->
-> Only one of them is running that truck this week, and it had nothing to do with the
-> quality of the offer.
-
-## FC06 · THE OFFER
-**On-image:** Fill the seat. **Then keep it filled.** · 01 Emergency driver ·
-02 Owner-operator recruitment · 03 Full recruiting system
-
-> Three ways in, depending on how bad it is right now:
->
-> **Emergency driver** — one fully vetted CDL driver for a seat that cannot stay empty
-> another week.
-> **Owner-operator recruitment** — verified O/Os ready to lease on and run revenue.
-> **Full recruiting system** — an end-to-end engine, a predictable flow of pre-qualified
-> drivers.
+> **The guarantee is a delivery guarantee** — if we miss the agreed activation deadline
+> because of our delivery, we keep working at no additional management fee until the
+> system is live. It is not a guarantee of hires, revenue or campaign performance.
 
 ---
 
 # CAROUSELS
 
-## C1 · THE RACE — 6 slides
-The flagship. A single applicant, told as a stopwatch.
+## C1 · EVERYONE IS LOOKING FOR SOMEONE — 6 slides
+**The flagship.** Takes the brand's own line and proves it segment by segment, so every
+reader finds themselves somewhere in slides 2–4.
 
 | # | Slide |
 |---|---|
-| 1 | A driver applied to your fleet at **9:14 this morning.** Right now it is a fair fight. |
-| 2 | By eleven o'clock he had applied to **5 more.** |
-| 3 | Carrier number two called him back at **09:21.** Not a better offer. Just first. |
-| 4 | Your recruiter got to him at **16:30.** Nothing about your fleet had changed. Only the clock. |
-| 5 | **He'd already signed. At noon.** |
-| 6 | **You didn't lose a driver. You lost a race.** |
+| 1 | Everyone in trucking is **looking for someone.** |
+| 2 | If you run a fleet — you're looking for **drivers.** |
+| 3 | If you dispatch — you're looking for **carriers.** |
+| 4 | If you broker — you're looking for **shippers.** |
+| 5 | Same problem. **Five different words for it.** |
+| 6 | One system. **Configured for who you need to find.** |
 
-> A driver applied to your fleet at 9:14 this morning. Here's what happened to him by
-> lunch. → *(swipe)*
->
-> Nothing in this story is about your pay package.
-
-## C2 · WHAT AN EMPTY SEAT COSTS — 6 slides
-The arithmetic. Best for retargeting owners who already know they have a problem.
+## C2 · WHAT GETS INSTALLED — 6 slides
+**The substance carousel.** Answers "what am I actually buying" by walking the eleven
+steps in four groups. Best for warm traffic and anyone who's been burned by a lead vendor.
 
 | # | Slide |
 |---|---|
-| 1 | An empty truck **doesn't stop costing money.** It stops earning. Not the same thing. |
-| 2 | Line item 01 — The payment. **Due.** |
-| 3 | Line item 02 — Plates, permits, insurance. **Paid.** |
-| 4 | Line item 03 — The freight you turned down. **Gone.** |
-| 5 | **Charged daily. Never invoiced.** *(labelled illustrative on-slide)* |
-| 6 | **The fastest way to cut that bill is to answer faster.** |
+| 1 | We don't hand you leads. **We install the system.** |
+| 2 | **01–03 Find them** — Targeting, Sourcing, Outreach & Advertising |
+| 3 | **04–06 Capture them** — Application Funnel, CRM, Qualification |
+| 4 | **07–09 Keep them** — Scheduling, Follow-Up, Reactivation *(where most operations lose the people they already paid to find)* |
+| 5 | **10–11 Improve it** — Reporting, Optimization |
+| 6 | Live in 30 days — with the guarantee's caveat on-slide |
 
-> Nobody sends you an invoice for an open seat. That's exactly why it's the most
-> expensive line in the business.
-
-## C3 · FOUR REASONS YOUR TRUCKS ARE STILL EMPTY — 6 slides
-The diagnostic. Highest save/share rate of the three — it reads as advice, not an ad.
+## C3 · FOUR BUSINESSES — 6 slides
+**The proof carousel.** All four case lines verbatim from the site, one per slide.
 
 | # | Slide |
 |---|---|
-| 1 | Four reasons your trucks are **still empty.** None of them is a driver shortage. |
-| 2 | **01** You're not slow. You're slower than whoever called first. |
-| 3 | **02** Your best applicants apply at 11pm. You open at eight. |
-| 4 | **03** You pay for leads, then let them go cold. |
-| 5 | **04** Everyone works the same twenty names. Nobody works the other hundred and eighty. |
-| 6 | **All four are the same problem. Nobody answered.** |
-
-> There is no driver shortage in your market. There is a response-time shortage in your
-> office. → *(swipe)*
+| 1 | Four businesses. **Four different people to find.** |
+| 2 | A regional carrier needed **drivers** |
+| 3 | A dispatch company needed **carriers** |
+| 4 | A freight broker needed **shippers** |
+| 5 | A service provider needed **customers** |
+| 6 | So — **who do you need to find?** |
 
 ---
 
 # RUN ORDER
 
-**Cold / prospecting:** `FC01 GHOST`, `C3 FOUR REASONS` — both read as insight, not offer.
-**Problem-aware:** `FC03 03:47`, `FC04 SIX CARRIERS`, `C1 THE RACE`
-**Cost-aware / retarget:** `FC02 EMPTY`, `C2 EMPTY SEAT COSTS`
-**Hot / close:** `FC05 SECONDS`, `FC06 OFFER`
+**Cold / prospecting:** `FC01`, `C1` — the platform idea, works on anyone in trucking.
+**Segmenting:** `FC02` — best single ad for cheap lead classification.
+**Problem-aware:** `FC03`, `FC04` — run to the matching segment only.
+**Objection / consideration:** `FC05`, `C2`.
+**Proof:** `C3`.
+**Close:** `FC06`.
 
-**First test — four creatives:** `FC01` (hook) · `C1` (story) · `FC02` (cost) · `FC06` (offer).
+**First test — four:** `FC01` (platform) · `C1` (story) · `FC02` (segment) · `FC06` (offer).
 
-**Platform notes.** Carousels are the strongest asset here — LinkedIn and Instagram both
-reward completion, and all three are built so slide 1 works alone as a static if a
-carousel underdelivers. `FC01` is the single best static in the set.
+Carousels are the strongest asset. Every slide 1 also works alone as a static.
 
 ---
 
-# CLAIMS DISCIPLINE
+# CLAIMS AUDIT
 
-Every number in this set is **structural or illustrative**, not measured:
+Everything on these creatives traces to the live site:
 
-- Timestamps (`09:14`, `03:47`, `16:30`, `12:00`) are narrative devices in a scenario,
-  not logged data. They are presented as a story, never as a case study.
-- `19 days parked` on FC02 and the C2 totals slide are illustrative; C2-05 says so
-  on the slide itself. Keep that label.
-- **Not used anywhere:** the Faith In Transit "40% reduction in hiring waste" and Freight
-  X Core figures found in search cache. They are attributable to FleetConnect's own
-  marketing, but I could not verify them against a live site, so they are deliberately
-  absent. Add them only once confirmed, with the client name attached.
-- No testimonials, no named customers, no guarantees, no invented averages.
+| Claim | Status |
+|---|---|
+| 40–120 applications/month | Site's stated driver-acquisition model. Labelled on FC03 as a throughput range, **not a promise of hires**. |
+| 15–40 qualified owner-operator conversations/month | Site's stated figure. |
+| $3,500–$7,500 install | Site's stated install cost. |
+| 3 new installs per month | Site's stated capacity. |
+| 30-day activation guarantee | Site's wording, **always shipped with its caveat** — delivery and activation only, not hires, revenue, customers or performance. |
+| Four case-study lines | Quoted verbatim, attributed by business type as the site does (no company names are given there, so none are invented here). |
+
+**Deliberately not used:** the site's animated counters ("0+ Transportation Professionals",
+"0+ Fleet Companies", "Thousands", "Years") render as zero in a static fetch, so their real
+values are unknown. The 53,000+ operator community figure is real but belongs to the Skool
+community rather than to client results, so it is not used as proof.
+
+Nothing here is invented. No named testimonials, no fabricated averages, no implied
+performance guarantee.

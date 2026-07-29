@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Emit every FleetConnect creative as standalone HTML.
+"""FleetConnect creatives — built against the live site.
 
-No CTA URL is written into any creative on purpose: fleetconnect.pro has expired.
-Insert the live domain in FOOT_R before these run. See fleetconnect/ART-DIRECTION.md
+Source of truth: https://fleet-connect-gray.vercel.app/
+Copy, numbers, guarantee wording and palette are all taken from there.
+See fleetconnect/COPY-DECK.md for the claims audit.
 """
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FOOT_L = "FLEETCONNECT &nbsp;&middot;&nbsp; AI-ASSISTED CDL RECRUITING"
-FOOT_R = "BOOK A FLEET REVIEW"          # ← add the live URL here once it exists
+FOOT_L = "FLEETCONNECT"
+FOOT_R = "TELL US WHO YOU NEED TO FIND"
 
-def page(name, *, body, status_l, status_r, foot_l=FOOT_L, foot_r=FOOT_R,
-         lit=False, pips=None, swipe=None, extra_css="", pre=""):
+
+def page(name, *, body, sect, foot_l=FOOT_L, foot_r=FOOT_R,
+         bloom="bloom", pips=None, swipe=None, extra_css="", pre=""):
     pipbar = ""
     if pips:
         i, n = pips
@@ -22,12 +24,10 @@ def page(name, *, body, status_l, status_r, foot_l=FOOT_L, foot_r=FOOT_R,
     html = f"""<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="_fc.css">
 <style>{extra_css}</style></head><body>
-<div class="canvas{' lit' if lit else ''}">
-{pre}  <div class="mesh"></div>
-  <div class="status">
-    <div class="l"><span class="dot"></span><span>{status_l}</span></div>
-    <div>{status_r}</div>
-  </div>
+<div class="canvas">
+  <div class="{bloom}"></div>
+{pre}  <div class="mark">FLEET<span>CONNECT</span></div>
+  <div class="sect">{sect}</div>
   <div class="body">
 {body}
   </div>
@@ -43,142 +43,111 @@ def page(name, *, body, status_l, status_r, foot_l=FOOT_L, foot_r=FOOT_R,
 
 # ══════════════════════════════════════════════════════════ SINGLES
 
-page("FC01-ghost.html",
-     status_l="LIVE &nbsp;&middot;&nbsp; INBOUND APPLICANT",
-     status_r="09:14 &nbsp;&middot;&nbsp; QUEUE <b>6</b>",
+page("FC01-everyone.html", sect="The core problem", bloom="bloom",
      extra_css="""
        .body{justify-content:center}
-       h1{font-size:118px}
-       .sub{margin-top:46px;max-width:800px;font-size:29px}
-       .rule{height:1px;background:var(--hair);margin:46px 0 0}
+       h1{font-size:104px;line-height:1.0}
+       .sub{margin-top:44px;max-width:830px;font-size:28px}
+       .rule{height:1px;background:var(--hair);margin-top:44px}
      """,
-     body="""    <h1>They didn&rsquo;t<br>ghost you.<br><em>Somebody<br>called first.</em></h1>
+     body="""    <h1>Everyone in<br>trucking is<br><em>looking for<br>someone.</em></h1>
     <div class="rule"></div>
-    <div class="sub">A driver applies to five carriers in one sitting, usually at night,
-      and signs with whoever answers. Not the best offer. The first one.</div>""")
+    <div class="sub">Carriers need drivers. Dispatchers need carriers. Brokers need shippers.
+      Almost all of it still runs on referrals, cold lists and luck.</div>""")
 
-page("FC02-empty.html",
-     status_l="UNIT 114 &nbsp;&middot;&nbsp; NO DRIVER ASSIGNED",
-     status_r="DAY <b>19</b>",
+page("FC02-who.html", sect="One system, configured", bloom="bloom gold",
      extra_css="""
        .body{justify-content:center}
-       h1{font-size:212px;letter-spacing:.012em;line-height:.9;
-          -webkit-text-stroke:4px var(--alert);color:transparent}
-       .sub{margin-top:34px;max-width:760px}
-       .strip{margin-top:56px}
+       h1{font-size:78px}
+       .targets{margin-top:48px}
      """,
-     body="""    <h1>EMPTY</h1>
-    <div class="sub">A truck with nobody in it still makes a payment, still carries
-      plates, still insures, still depreciates. It just doesn&rsquo;t earn.</div>
+     body="""    <h1>Tell us who you<br>need to <em>find.</em></h1>
+    <div class="targets">
+      <div class="tgt on"><span class="ix">01</span><span class="n">Drivers</span><span class="m">Company &amp; CDL-A</span></div>
+      <div class="tgt on"><span class="ix">02</span><span class="n">Owner-Operators</span><span class="m">Lease-on ready</span></div>
+      <div class="tgt on"><span class="ix">03</span><span class="n">Carriers</span><span class="m">In your lanes</span></div>
+      <div class="tgt on"><span class="ix">04</span><span class="n">Shippers</span><span class="m">Direct freight</span></div>
+      <div class="tgt on"><span class="ix">05</span><span class="n">Customers</span><span class="m">Decision-makers</span></div>
+    </div>""")
+
+page("FC03-careers-page.html", sect="Proof &mdash; driver acquisition", bloom="bloom low",
+     extra_css="""
+       .body{justify-content:center}
+       .kick{margin-bottom:26px}
+       h1{font-size:82px}
+       .strip{margin-top:54px}
+       .sub{margin-top:36px;max-width:800px;font-size:22px}
+     """,
+     body="""    <div class="kick">Regional carrier &nbsp;&middot;&nbsp; driver acquisition</div>
+    <h1>Turned a dead<br>careers page into<br><em>a steady flow.</em></h1>
     <div class="strip">
-      <div class="cell"><div class="v alert">19</div><div class="k">Days<br>parked</div></div>
-      <div class="cell"><div class="v alert">0</div><div class="k">Loads<br>hauled</div></div>
-      <div class="cell"><div class="v alert">0</div><div class="k">Costs<br>paused</div></div>
-    </div>""")
-
-page("FC03-0347.html",
-     status_l="APPLICATION RECEIVED",
-     status_r="SAT 03:47 &nbsp;&middot;&nbsp; UNANSWERED <b>04:13</b>",
-     extra_css="""
-       .body{justify-content:center}
-       .kick{margin-bottom:22px}
-       h1{font-size:236px;letter-spacing:-.05em;color:var(--live)}
-       .sub{margin-top:30px;max-width:790px}
-       .rows{margin-top:46px}
-     """,
-     body="""    <div class="kick">When your best applicant applied</div>
-    <h1>03:47</h1>
-    <div class="sub">Good drivers apply when they get off the road. That is almost never
-      during your office hours.</div>
-    <div class="rows">
-      <div class="row"><span class="n">01</span><span class="t">He applies. Saturday, 3:47am.</span><span class="v live">ANSWERED</span></div>
-      <div class="row"><span class="n">02</span><span class="t">Your recruiter opens the inbox. Monday, 8:00am.</span><span class="v alert">+52 HRS</span></div>
-      <div class="row" style="border-bottom:none"><span class="n">03</span><span class="t">He started somewhere else. Monday, 6:00am.</span><span class="v alert">GONE</span></div>
-    </div>""")
-
-page("FC04-six-carriers.html",
-     status_l="SAME APPLICANT &nbsp;&middot;&nbsp; SIX CARRIERS",
-     status_r="RACE <b>CLOSED</b>",
-     extra_css="""
-       .body{justify-content:center}
-       h1{font-size:88px;line-height:.98}
-       .rows{margin-top:52px}
-       .row .t{font-family:'JB',monospace;font-size:22px;letter-spacing:.02em}
-       .row.win .t{color:var(--live)} .row.you .t{color:var(--alert)}
-     """,
-     body="""    <h1>He applied to six<br>carriers before lunch.<br><em>You were fourth<br>to call.</em></h1>
-    <div class="rows">
-      <div class="row win"><span class="n">1</span><span class="t">CARRIER B &mdash; called back</span><span class="v live">09:21</span></div>
-      <div class="row"><span class="n">2</span><span class="t">CARRIER D &mdash; called back</span><span class="v">11:05</span></div>
-      <div class="row"><span class="n">3</span><span class="t">CARRIER A &mdash; called back</span><span class="v">14:40</span></div>
-      <div class="row you"><span class="n">4</span><span class="t">YOUR FLEET &mdash; called back</span><span class="v alert">16:30</span></div>
-      <div class="row" style="border-bottom:none"><span class="n">&mdash;</span><span class="t">HE SIGNED WITH CARRIER B</span><span class="v live">12:00</span></div>
-    </div>""")
-
-page("FC05-seconds.html",
-     status_l="RESPONSE LATENCY &nbsp;&middot;&nbsp; COMPARED",
-     status_r="SAT 23:41",
-     extra_css="""
-       .body{justify-content:center}
-       .body > *{flex:0 0 auto}
-       .split{display:flex;gap:0;align-items:flex-start;border-top:1px solid var(--hair)}
-       .half{min-width:0}
-       .half{flex:1;padding:34px 0 30px}
-       .half:first-child{border-right:1px solid var(--hair);padding-right:38px}
-       .half:last-child{padding-left:38px}
-       .half .lbl{font-family:'JB',monospace;font-size:12px;letter-spacing:.20em;
-                  text-transform:uppercase;color:var(--dim);margin-bottom:20px}
-       .half .big{font-family:'Outfit',sans-serif;font-weight:700;font-size:76px;
-                  line-height:.9;letter-spacing:-.035em}
-       .half.fast .big{color:var(--live)}
-       .half.slow .big{color:var(--alert)}
-       .half .note{margin-top:14px;font-family:'Instr',sans-serif;font-size:19px;
-                   line-height:1.4;color:rgba(233,238,243,.62)}
-       h1{font-size:66px;line-height:1.02}
-       .tail{margin-top:auto;padding-top:26px;border-top:1px solid var(--hair);
-             font-family:'Instr',sans-serif;font-size:22px;color:rgba(233,238,243,.70)}
-     """,
-     body="""    <h1>A driver applied<br>on Saturday night.</h1>
-    <div class="split">
-      <div class="half slow">
-        <div class="lbl">Your inbox</div>
-        <div class="big">Monday<br>8:00am</div>
-        <div class="note">Fifty-six hours later. He is already in someone else&rsquo;s orientation.</div>
-      </div>
-      <div class="half fast">
-        <div class="lbl">Answered in</div>
-        <div class="big">Seconds</div>
-        <div class="note">Text, voice or email, the moment the application lands &mdash; at 11:41 on a Saturday night.</div>
-      </div>
+      <div class="cell"><div class="v">40&ndash;120</div><div class="k">Applications<br>per month</div></div>
+      <div class="cell"><div class="v plain">Pre-qualified</div><div class="k">Before they reach<br>your desk</div></div>
+      <div class="cell"><div class="v plain">30 days</div><div class="k">To activation,<br>guaranteed</div></div>
     </div>
-    <div class="tail">Recruiting is not a volume problem. It is a latency problem.</div>""")
+    <div class="sub">Application volume is the driver-acquisition model. It is a throughput
+      range, not a promise of hires.</div>""")
 
-page("FC06-offer.html",
-     status_l="INTAKE OPEN",
-     status_r="FLEETS <b>1&ndash;200</b> TRUCKS",
+page("FC04-referrals.html", sect="Proof &mdash; carrier acquisition", bloom="bloom low",
      extra_css="""
-       .body{justify-content:flex-start;padding-top:14px}
-       h1{font-size:96px;line-height:.94}
-       .sub{margin-top:24px;max-width:820px;font-size:25px}
-       .tiers{margin-top:auto}
-       .tier{display:flex;gap:24px;align-items:flex-start;padding:26px 0;border-top:1px solid var(--hair)}
-       .tier .ix{font-family:'JB',monospace;font-size:13px;letter-spacing:.14em;color:var(--live);
-                 flex:0 0 44px;padding-top:7px}
-       .tier .h{font-family:'Outfit',sans-serif;font-weight:700;font-size:32px;letter-spacing:-.024em}
-       .tier .p{margin-top:7px;font-family:'Instr',sans-serif;font-size:20px;line-height:1.42;
-                color:rgba(233,238,243,.62)}
+       .body{justify-content:center}
+       .kick{margin-bottom:26px}
+       h1{font-size:84px}
+       .sub{margin-top:40px;max-width:820px;font-size:25px}
+       .strip{margin-top:46px}
      """,
-     body="""    <h1>Fill the seat.<br><em>Then keep it filled.</em></h1>
-    <div class="sub">Every applicant engaged the moment they apply. Qualified, nurtured
-      and followed up. Only serious, pre-vetted drivers reach your desk.</div>
-    <div class="tiers">
-      <div class="tier"><div class="ix">01</div><div><div class="h">Emergency driver</div>
-        <div class="p">One fully vetted CDL driver for a critical gap. When a seat cannot stay empty another week.</div></div></div>
-      <div class="tier"><div class="ix">02</div><div><div class="h">Owner-operator recruitment</div>
-        <div class="p">Verified owner-operators ready to lease on and run revenue immediately.</div></div></div>
-      <div class="tier"><div class="ix">03</div><div><div class="h">Full recruiting system</div>
-        <div class="p">An end-to-end hiring engine. A predictable, scalable flow of pre-qualified drivers.</div></div></div>
+     body="""    <div class="kick v">Dispatch company &nbsp;&middot;&nbsp; carrier acquisition</div>
+    <h1>Referrals aren&rsquo;t<br>a growth plan.<br><em>They&rsquo;re a queue you<br>don&rsquo;t control.</em></h1>
+    <div class="sub">Replaced referral-dependence with a repeatable way to add carriers
+      in their lanes.</div>
+    <div class="strip">
+      <div class="cell"><div class="v">15&ndash;40</div><div class="k">Qualified owner-operator<br>conversations per month</div></div>
+      <div class="cell"><div class="v plain">Repeatable</div><div class="k">Not dependent on who<br>happens to refer you</div></div>
     </div>""")
+
+page("FC05-install.html", sect="What gets installed", bloom="bloom",
+     extra_css="""
+       .body{justify-content:center}
+       h1{font-size:74px}
+       .sub{margin-top:26px;max-width:790px;font-size:23px}
+       .steps{margin-top:42px}
+     """,
+     body="""    <h1>We don&rsquo;t hand you<br>leads. We install<br><em>the system.</em></h1>
+    <div class="sub">Eleven parts, built for your market and your lanes, then operated.</div>
+    <div class="steps">
+      <div class="step"><span class="no">01</span><span class="nm">Targeting</span></div>
+      <div class="step"><span class="no">07</span><span class="nm">Scheduling</span></div>
+      <div class="step"><span class="no">02</span><span class="nm">Sourcing</span></div>
+      <div class="step"><span class="no">08</span><span class="nm">Follow-Up</span></div>
+      <div class="step"><span class="no">03</span><span class="nm">Outreach &amp; Ads</span></div>
+      <div class="step"><span class="no">09</span><span class="nm">Reactivation</span></div>
+      <div class="step"><span class="no">04</span><span class="nm">Application Funnel</span></div>
+      <div class="step"><span class="no">10</span><span class="nm">Reporting</span></div>
+      <div class="step"><span class="no">05</span><span class="nm">CRM</span></div>
+      <div class="step"><span class="no">11</span><span class="nm">Optimization</span></div>
+      <div class="step" style="border-bottom:none"><span class="no">06</span><span class="nm">Qualification</span></div>
+      <div class="step" style="border-bottom:none"></div>
+    </div>""")
+
+page("FC06-offer.html", sect="Pricing &amp; capacity", bloom="bloom gold",
+     extra_css="""
+       .body{justify-content:center}
+       h1{font-size:78px}
+       .strip{margin-top:48px}
+       .note{margin-top:34px;padding-top:26px;border-top:1px solid var(--hair);
+             font-family:'Inter',sans-serif;font-size:18.5px;line-height:1.52;color:var(--dim);max-width:850px}
+       .note b{color:var(--lav);font-weight:700}
+     """,
+     body="""    <h1>Live in 30 days,<br>or we keep working<br><em>at no extra fee.</em></h1>
+    <div class="strip">
+      <div class="cell"><div class="v">$3,500&ndash;$7,500</div><div class="k">Install</div></div>
+      <div class="cell"><div class="v plain">3</div><div class="k">New installs<br>per month</div></div>
+      <div class="cell"><div class="v plain">30</div><div class="k">Day activation<br>guarantee</div></div>
+    </div>
+    <div class="note"><b>Read this part carefully.</b> The guarantee covers delivery and
+      activation &mdash; that the system gets built and turned on. It is not a guarantee of
+      hires, revenue, customers or campaign performance. Ongoing management is priced to
+      campaign volume, channels and target markets.</div>""")
 
 
 # ══════════════════════════════════════════════════════════ CAROUSELS
@@ -186,123 +155,138 @@ page("FC06-offer.html",
 def carousel(prefix, n, slides):
     for i, s in enumerate(slides, 1):
         page(f"{prefix}-{i:02d}.html", pips=(i, n),
-             swipe="Swipe &rarr;" if i < n else "",
-             **s)
+             swipe="Swipe &rarr;" if i < n else "", **s)
 
-# ---- C1 · THE RACE
-BIG = ".body{justify-content:center} h1{font-size:104px} .sub{margin-top:40px;max-width:820px}"
-STAMP = """.body{justify-content:center}
-  .kick{margin-bottom:20px}
-  .stamp{font-family:'Outfit',sans-serif;font-weight:700;font-size:210px;line-height:.86;letter-spacing:-.05em}
-  .sub{margin-top:36px;max-width:800px}"""
+BIG = ".body{justify-content:center} h1{font-size:92px} .sub{margin-top:40px;max-width:830px}"
+LINE = """.body{justify-content:center}
+  .kick{margin-bottom:24px}
+  h1{font-size:86px}
+  .sub{margin-top:38px;max-width:800px;font-size:24px}"""
 
+# ---- C1 · EVERYONE IS LOOKING FOR SOMEONE
 carousel("C1", 6, [
- dict(status_l="THE RACE &nbsp;&middot;&nbsp; PART ONE", status_r="01 / 06", extra_css=BIG,
-      body="""    <h1>A driver applied<br>to your fleet at<br><em>9:14 this morning.</em></h1>
-    <div class="sub">You have not called him yet. Neither has anyone else. Right now it is a fair fight.</div>"""),
- dict(status_l="09:14 &rarr; 11:00", status_r="02 / 06", extra_css=STAMP,
-      body="""    <div class="kick">By eleven o&rsquo;clock he had applied to</div>
-    <div class="stamp" style="color:var(--ice)">5 more</div>
-    <div class="sub">This is normal. Good drivers do not apply to one carrier. They apply to six and let the phone decide.</div>"""),
- dict(status_l="CARRIER B RESPONDED", status_r="03 / 06", extra_css=STAMP,
-      body="""    <div class="kick">Carrier number two called him back at</div>
-    <div class="stamp" style="color:var(--live)">09:21</div>
-    <div class="sub">Seven minutes after he hit send. Not a better offer. Not a better fleet. Just first.</div>"""),
- dict(status_l="YOUR FLEET RESPONDED", status_r="04 / 06", extra_css=STAMP,
-      body="""    <div class="kick">Your recruiter got to him at</div>
-    <div class="stamp" style="color:var(--alert)">16:30</div>
-    <div class="sub">Seven hours later. Nothing about your fleet had changed. Only the clock had.</div>"""),
- dict(status_l="OUTCOME", status_r="05 / 06", extra_css=BIG,
-      body="""    <h1>He&rsquo;d already<br>signed.<br><em>At noon.</em></h1>
-    <div class="sub">The truck he would have driven is still parked. It will still be parked next week.</div>"""),
- dict(status_l="THE POINT", status_r="06 / 06", extra_css=BIG + " h1{font-size:96px}",
-      body="""    <h1>You didn&rsquo;t lose<br>a driver.<br><em>You lost a race.</em></h1>
-    <div class="sub">FleetConnect answers every applicant in seconds &mdash; by text, voice or email,
-      at 3am on a Saturday if that is when they apply.</div>"""),
+ dict(sect="01 / The core problem", bloom="bloom", extra_css=BIG,
+      body="""    <h1>Everyone in trucking<br>is <em>looking for<br>someone.</em></h1>
+    <div class="sub">And almost nobody has a system for it.</div>"""),
+ dict(sect="01 / The core problem", bloom="bloom low", extra_css=LINE,
+      body="""    <div class="kick">If you run a fleet</div>
+    <h1>You&rsquo;re looking<br>for <em>drivers.</em></h1>
+    <div class="sub">And your careers page has been quiet for months.</div>"""),
+ dict(sect="01 / The core problem", bloom="bloom low", extra_css=LINE,
+      body="""    <div class="kick v">If you dispatch</div>
+    <h1>You&rsquo;re looking<br>for <em>carriers.</em></h1>
+    <div class="sub">And every one so far has come from somebody who knew somebody.</div>"""),
+ dict(sect="01 / The core problem", bloom="bloom low", extra_css=LINE,
+      body="""    <div class="kick">If you broker</div>
+    <h1>You&rsquo;re looking<br>for <em>shippers.</em></h1>
+    <div class="sub">And your reps are still working a cold list somebody bought in March.</div>"""),
+ dict(sect="01 / The core problem", bloom="bloom", extra_css=BIG,
+      body="""    <h1>Same problem.<br><em>Five different<br>words for it.</em></h1>
+    <div class="sub">Find the right people. Qualify them. Follow up until they answer.
+      Almost everyone in this industry is doing that by hand.</div>"""),
+ dict(sect="02 / How it works", bloom="bloom gold", extra_css=BIG,
+      body="""    <h1>One system.<br><em>Configured for who<br>you need to find.</em></h1>
+    <div class="sub">FleetConnect installs and operates it &mdash; targeting through
+      optimization &mdash; and it is live in 30 days.</div>"""),
 ])
 
-# ---- C2 · WHAT AN EMPTY SEAT COSTS
-LINE = """.body{justify-content:center}
-  .kick{margin-bottom:18px}
-  .item{font-family:'Outfit',sans-serif;font-weight:700;font-size:78px;line-height:.98;letter-spacing:-.032em}
-  .amt{margin-top:34px;font-family:'Outfit',sans-serif;font-weight:700;font-size:120px;
-       line-height:.9;letter-spacing:-.04em;color:var(--alert)}
-  .per{margin-top:14px;font-family:'JB',monospace;font-size:13px;letter-spacing:.22em;
-       text-transform:uppercase;color:var(--dim)}
-  .sub{margin-top:40px;max-width:760px;font-size:24px}"""
+# ---- C2 · WHAT GETS INSTALLED
+GRID = """.body{justify-content:center}
+  .kick{margin-bottom:22px}
+  h1{font-size:72px}
+  .steps{margin-top:42px;grid-template-columns:1fr}
+  .step{padding:19px 0}
+  .step .nm{font-size:27px}
+  .sub{margin-top:34px;max-width:790px;font-size:22px}"""
 
 carousel("C2", 6, [
- dict(status_l="COST OF AN EMPTY SEAT", status_r="01 / 06", extra_css=BIG,
-      body="""    <h1>An empty truck<br>doesn&rsquo;t stop<br><em>costing money.</em></h1>
-    <div class="sub">It stops earning. Those are not the same thing, and only one of them shows up
-      on the schedule.</div>"""),
- dict(status_l="LINE ITEM 01", status_r="02 / 06", extra_css=LINE,
-      body="""    <div class="kick">Line item 01</div>
-    <div class="item">The payment.</div>
-    <div class="amt">Due</div>
-    <div class="per">Whether or not it moved this month</div>
-    <div class="sub">The lender does not have a column for &ldquo;couldn&rsquo;t find a driver.&rdquo;</div>"""),
- dict(status_l="LINE ITEM 02", status_r="03 / 06", extra_css=LINE,
-      body="""    <div class="kick">Line item 02</div>
-    <div class="item">Plates, permits,<br>insurance.</div>
-    <div class="amt">Paid</div>
-    <div class="per">Annually, in advance, per unit</div>
-    <div class="sub">All of it bought for a truck that is sitting in your yard.</div>"""),
- dict(status_l="LINE ITEM 03", status_r="04 / 06", extra_css=LINE,
-      body="""    <div class="kick">Line item 03</div>
-    <div class="item">The freight you<br>turned down.</div>
-    <div class="amt">Gone</div>
-    <div class="per">The largest number on this list</div>
-    <div class="sub">And the only one your broker will remember next time they are handing out lanes.</div>"""),
- dict(status_l="TOTAL", status_r="05 / 06", extra_css=BIG + """
-       h1{font-size:96px} .strip{margin-top:52px}""",
-      body="""    <h1>Charged daily.<br><em>Never invoiced.</em></h1>
-    <div class="strip">
-      <div class="cell"><div class="v alert">19</div><div class="k">Average days<br>to fill a seat</div></div>
-      <div class="cell"><div class="v alert">&times;</div><div class="k">Every cost above<br>still running</div></div>
-      <div class="cell"><div class="v alert">&#8734;</div><div class="k">Times it repeats<br>per driver lost</div></div>
+ dict(sect="02 / How it works", bloom="bloom gold", extra_css=BIG,
+      body="""    <h1>We don&rsquo;t hand<br>you leads.<br><em>We install<br>the system.</em></h1>
+    <div class="sub">Eleven parts. Built for your market, then operated for you.</div>"""),
+ dict(sect="02 / How it works", bloom="bloom", extra_css=GRID,
+      body="""    <div class="kick">Find them</div>
+    <h1>01 &ndash; 03</h1>
+    <div class="steps">
+      <div class="step"><span class="no">01</span><span class="nm">Targeting</span></div>
+      <div class="step"><span class="no">02</span><span class="nm">Sourcing</span></div>
+      <div class="step" style="border-bottom:none"><span class="no">03</span><span class="nm">Outreach &amp; Advertising</span></div>
     </div>
-    <div class="sub" style="margin-top:40px;font-size:22px">Illustrative &mdash; run the numbers against your own units.</div>"""),
- dict(status_l="THE FIX", status_r="06 / 06", extra_css=BIG,
-      body="""    <h1>The fastest way<br>to cut that bill<br><em>is to answer faster.</em></h1>
-    <div class="sub">Every applicant engaged the second they apply. Qualified, nurtured,
-      and handed to you only when they are serious.</div>"""),
+    <div class="sub">Who they are, where they are, and what actually gets them to respond.</div>"""),
+ dict(sect="02 / How it works", bloom="bloom", extra_css=GRID,
+      body="""    <div class="kick">Capture them</div>
+    <h1>04 &ndash; 06</h1>
+    <div class="steps">
+      <div class="step"><span class="no">04</span><span class="nm">Application Funnel</span></div>
+      <div class="step"><span class="no">05</span><span class="nm">CRM</span></div>
+      <div class="step" style="border-bottom:none"><span class="no">06</span><span class="nm">Qualification</span></div>
+    </div>
+    <div class="sub">So nobody lands in an inbox and quietly dies there.</div>"""),
+ dict(sect="02 / How it works", bloom="bloom", extra_css=GRID,
+      body="""    <div class="kick">Keep them</div>
+    <h1>07 &ndash; 09</h1>
+    <div class="steps">
+      <div class="step"><span class="no">07</span><span class="nm">Scheduling</span></div>
+      <div class="step"><span class="no">08</span><span class="nm">Follow-Up</span></div>
+      <div class="step" style="border-bottom:none"><span class="no">09</span><span class="nm">Reactivation</span></div>
+    </div>
+    <div class="sub">This is where most operations lose the people they already paid to find.</div>"""),
+ dict(sect="02 / How it works", bloom="bloom", extra_css=GRID,
+      body="""    <div class="kick">Improve it</div>
+    <h1>10 &ndash; 11</h1>
+    <div class="steps">
+      <div class="step"><span class="no">10</span><span class="nm">Reporting</span></div>
+      <div class="step" style="border-bottom:none"><span class="no">11</span><span class="nm">Optimization</span></div>
+    </div>
+    <div class="sub">You see what the system is doing, and it gets sharper every month.</div>"""),
+ dict(sect="05 / Pricing &amp; capacity", bloom="bloom gold", extra_css=BIG + """
+       .note{margin-top:36px;padding-top:24px;border-top:1px solid var(--hair);
+             font-family:'Inter',sans-serif;font-size:18px;line-height:1.5;color:var(--dim)}""",
+      body="""    <h1>Live in 30 days,<br><em>or we keep going<br>at no extra fee.</em></h1>
+    <div class="sub">Install $3,500&ndash;$7,500. Three new installs a month, and that is the
+      whole capacity.</div>
+    <div class="note">The guarantee covers delivery and activation &mdash; that the system gets
+      built and turned on. It is not a guarantee of hires, revenue or campaign performance.</div>"""),
 ])
 
-# ---- C3 · FOUR REASONS
-REASON = """.body{justify-content:center}
-  .num{font-family:'Outfit',sans-serif;font-weight:700;font-size:150px;line-height:.82;
-       letter-spacing:-.05em;color:var(--live);margin-bottom:26px}
-  h1{font-size:76px;line-height:1.0}
-  .sub{margin-top:34px;max-width:800px;font-size:25px}"""
+# ---- C3 · FOUR BUSINESSES, FOUR THINGS THEY NEEDED
+PROOF = """.body{justify-content:center}
+  .card{margin-top:38px}
+  h1{font-size:68px}
+  .sub{margin-top:30px;max-width:800px;font-size:22px}"""
 
 carousel("C3", 6, [
- dict(status_l="DIAGNOSTIC", status_r="01 / 06", extra_css=BIG,
-      body="""    <h1>Four reasons<br>your trucks are<br><em>still empty.</em></h1>
-    <div class="sub">None of them is that there aren&rsquo;t enough drivers.</div>"""),
- dict(status_l="REASON 01", status_r="02 / 06", extra_css=REASON,
-      body="""    <div class="num">01</div>
-    <h1>You&rsquo;re not slow.<br>You&rsquo;re slower than<br>whoever called first.</h1>
-    <div class="sub">Four hours feels responsive to you. It is fourth place to him.</div>"""),
- dict(status_l="REASON 02", status_r="03 / 06", extra_css=REASON,
-      body="""    <div class="num">02</div>
-    <h1>Your best applicants<br>apply at 11pm.<br>You open at eight.</h1>
-    <div class="sub">Drivers apply when they shut down for the night. Your coverage
-      is the exact inverse of their behaviour.</div>"""),
- dict(status_l="REASON 03", status_r="04 / 06", extra_css=REASON,
-      body="""    <div class="num">03</div>
-    <h1>You pay for leads,<br>then let them<br>go cold.</h1>
-    <div class="sub">The spend was never the problem. The forty-eight hours after
-      the spend is the problem.</div>"""),
- dict(status_l="REASON 04", status_r="05 / 06", extra_css=REASON,
-      body="""    <div class="num">04</div>
-    <h1>Everyone works<br>the same twenty names.</h1>
-    <div class="sub">Nobody works the other hundred and eighty. Those are not bad leads.
-      They are unworked ones.</div>"""),
- dict(status_l="ALL FOUR", status_r="06 / 06", extra_css=BIG,
-      body="""    <h1>All four are<br>the same problem.<br><em>Nobody answered.</em></h1>
-    <div class="sub">FleetConnect answers every applicant in seconds, works the whole
-      list instead of the top of it, and only hands you the ones worth your time.</div>"""),
+ dict(sect="04 / Proof", bloom="bloom", extra_css=BIG,
+      body="""    <h1>Four businesses.<br><em>Four different<br>people to find.</em></h1>
+    <div class="sub">Same system underneath. Configured differently for each.</div>"""),
+ dict(sect="04 / Proof", bloom="bloom low", extra_css=PROOF,
+      body="""    <h1>A regional carrier<br>needed <em>drivers.</em></h1>
+    <div class="card"><div class="who">Driver acquisition</div>
+      <div class="q">&ldquo;Turned a dead careers page into a steady flow of pre-qualified
+        driver applications.&rdquo;</div></div>
+    <div class="sub">The driver model runs 40&ndash;120 applications a month.</div>"""),
+ dict(sect="04 / Proof", bloom="bloom low", extra_css=PROOF,
+      body="""    <h1>A dispatch company<br>needed <em>carriers.</em></h1>
+    <div class="card"><div class="who">Carrier acquisition</div>
+      <div class="q">&ldquo;Replaced referral-dependence with a repeatable way to add
+        carriers in their lanes.&rdquo;</div></div>
+    <div class="sub">Growth stopped depending on who happened to know somebody.</div>"""),
+ dict(sect="04 / Proof", bloom="bloom low", extra_css=PROOF,
+      body="""    <h1>A freight broker<br>needed <em>shippers.</em></h1>
+    <div class="card"><div class="who">Shipper acquisition</div>
+      <div class="q">&ldquo;Reps now spend their time on qualified shipper conversations
+        instead of cold lists.&rdquo;</div></div>
+    <div class="sub">Same headcount. Very different day.</div>"""),
+ dict(sect="04 / Proof", bloom="bloom low", extra_css=PROOF,
+      body="""    <h1>A service provider<br>needed <em>customers.</em></h1>
+    <div class="card"><div class="who">Customer acquisition</div>
+      <div class="q">&ldquo;Decision-maker appointments booked on a schedule, without
+        adding sales headcount.&rdquo;</div></div>
+    <div class="sub">Insurance, factoring, compliance, training &mdash; all of it sells
+      into the same industry.</div>"""),
+ dict(sect="03 / Who we help", bloom="bloom gold", extra_css=BIG,
+      body="""    <h1>So &mdash; who do<br><em>you need to find?</em></h1>
+    <div class="sub">Drivers, owner-operators, carriers, shippers or customers.
+      Tell us which one and we will show you the install.</div>"""),
 ])
 
 print("\ndone.")

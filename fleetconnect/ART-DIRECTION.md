@@ -1,105 +1,97 @@
 # FLEETCONNECT — ART DIRECTION
-### "SIGNAL" — the visual language of a live system
+### Taken from the live site, not invented
+
+**Source of truth:** https://fleet-connect-gray.vercel.app/
 
 ---
 
-## The business, as I understand it
+## What FleetConnect actually is
 
-**Sourced from search cache — `fleetconnect.pro` has expired and is on a Porkbun
-auction page, so this could not be verified against a live site. Confirm before spend.**
+> **"Find the People Your Trucking Business Needs to Grow."**
+>
+> Whether you need drivers, owner-operators, carriers, shippers, or customers,
+> Fleet Connect installs and operates the system that finds, qualifies, and follows
+> up with them.
 
-AI-powered CDL driver recruiting for growing fleets. Fills empty trucks without job
-boards or ghost leads. An AI recruiter engages every applicant by text, voice or email
-**within seconds**, qualifies and nurtures, and hands off only pre-vetted candidates.
+Not a driver-recruiting tool. An **acquisition system installed and operated for you**,
+configured for whichever of five audiences you need. That breadth is the product.
 
-Three tiers: **Emergency Driver Solutions** (one vetted CDL driver, critical gap) ·
-**Owner-Operator Recruitment** (verified O/Os ready to lease on) · **Full Recruiting
-System** (end-to-end AI hiring engine).
+**Five targets:** Drivers · Owner-Operators · Carriers · Shippers · Customers
 
----
+**Who buys:** carriers & fleets, dispatch companies, freight brokers, recruiters,
+owner-operators, insurance, factoring, technology, compliance, training providers —
+anyone selling into or staffing up in trucking.
 
-## This is not Linx, and must not look like it
+**The eleven-part install:** Targeting · Sourcing · Outreach & Advertising ·
+Application Funnel · CRM · Qualification · Scheduling · Follow-Up · Reactivation ·
+Reporting · Optimization
 
-Same repo, same industry, opposite customer. Getting this wrong is the biggest risk in
-the account.
-
-| | **Linx Dispatch** | **FleetConnect** |
-|---|---|---|
-| Buyer | Owner-operator, 1–20 trucks | Fleet owner / ops manager |
-| Owns | One truck he drives | Trucks he can't staff |
-| Pain | The phone won't stop | The seat won't fill |
-| Sells | Freedom, time back | Filled seats, speed |
-| Emotion | Exhaustion → relief | Urgency → control |
-| System | *Freight Ledger* — paper, asphalt, amber | *Signal* — console, void, acid lime |
-| Display face | Big Shoulders (condensed industrial) | Outfit (geometric, contemporary) |
-| Mono | Geist | JetBrains |
-
-**Linx owns amber in this repo. FleetConnect must never use it.** If the two brands
-ever appear in the same feed they should read as different companies, because they are.
+**Commercials:** Install $3,500–$7,500 · ongoing management priced to volume, channels
+and markets · capacity 3 new installs per month · 30-day activation guarantee.
 
 ---
 
-## The core insight
+## The line the campaign is built on
 
-The enemy is not applicant volume. It is **elapsed time**.
+> **Everyone in trucking is looking for someone.**
 
-A driver applies to five or six carriers in one sitting, usually at night, and takes
-the first one that calls back — not the best offer, the *first* one. Every hour a lead
-sits is a driver signing somewhere else.
+It's the site's own framing and it is the strongest asset the brand has. It works
+because it is simultaneously true of every segment on the customer list, and because
+it reframes five different-looking problems as one problem with one system underneath.
 
-So the product isn't "more leads." It's **response latency measured in seconds instead
-of business days**. Every creative in this set resolves to that, and nothing else.
-
-> **The line the campaign is built on:**
-> *They didn't ghost you. Somebody called first.*
+The CTA is the site's own and should not be improved on: **"Tell us who you need to find."**
+It is a question, not a demand, and it self-segments the lead before they ever fill
+anything in.
 
 ---
 
 ## The system
 
-**Palette — closed, three values plus one alert.**
+**Palette — lifted from the site's stylesheet.**
 
-| Token | Hex | Job |
+| Token | Hex | Source |
 |---|---|---|
-| `--void` | `#08090C` | Ground. Near-black, faint blue cast. |
-| `--panel` | `#12161C` | Raised surfaces, cards, slide chrome. |
-| `--live` | `#C6F135` | Acid lime. **Active, answered, filled.** One gesture per piece. |
-| `--ice` | `#E9EEF3` | Type. Cool white, never pure `#fff`. |
-| `--dim` | `#69737F` | Recessive labels, secondary data. |
-| `--alert` | `#FF4A38` | Cost, loss, empty. Used **only** on the money pieces. |
+| `--void` | `#08060f` | the site's `--color-surface` |
+| `--deep` | `#17102b` | panel fill |
+| `--gold` | `#d4b678` | primary accent (most-used colour on the site) |
+| `--gold-lt` / `--gold-dk` | `#e7cf98` / `#c4a566` | the gold gradient the site runs on headlines |
+| `--violet` | `#a882dc` | secondary accent |
+| `--lav` / `--lav-lt` | `#dcd4ea` / `#e6def5` | body copy |
+| `--dim` | `#6b5f8c` | muted labels |
 
-Lime is a state, not a decoration: it marks the thing that is *live*. If everything is
-lime, nothing is.
+Gold is for the **thing you're looking for**. Violet is atmosphere — the bloom behind
+the fold. Never the reverse.
 
-**Typography.** Display is **Outfit Bold** — geometric, contemporary, confident, and
-deliberately not condensed. Data and labels are **JetBrains Mono**, which reads as a
-console readout rather than a design choice. Body is **Instrument Sans**. Nothing else.
+**Typography — the site's own.** Display **Sora Bold**, body **Inter**. Both pulled from
+Google Fonts and vendored to `assets/fonts/` as woff2, so renders are reproducible.
 
-**The signature device — the status line.** Every piece carries a monospaced strip in
-the top margin with a live-system readout: `● LIVE`, a timestamp, a queue depth, a
-response counter. It is the thing that makes a graphic feel like a running system, the
-way the credit block made the Linx work feel like an artifact.
+**The signature device — the bloom.** The site sits on a soft violet radial glow behind
+the top of the fold. Every creative carries it (`.bloom`, `.bloom.gold`, `.bloom.low`).
+It is what makes a flat dark layout read as *this* brand rather than generic dark-mode.
 
 **Grid.** 1080 × 1350 (4:5), 80px safe area, rendered at 2× → 2160 × 2700.
 
 ---
 
+## Not Linx
+
+Two brands in one repo, and they must never look related.
+
+| | Linx Dispatch | FleetConnect |
+|---|---|---|
+| Sells | Dispatching to owner-operators | Acquisition systems to trucking businesses |
+| System | *Freight Ledger* — paper, asphalt, **amber** | violet-black + **champagne gold** |
+| Display | Big Shoulders (condensed industrial) | Sora (geometric, premium) |
+| Feel | Working document | Considered software brand |
+
+---
+
 ## Rules
 
-- **Time is always visible.** A timestamp, a duration, a counter. This brand's entire
-  argument is temporal, so the clock is never absent.
-- **Never show a smiling driver, a headset, a handshake, or a job board screenshot.**
-- **Never say "AI" in a headline.** It is the mechanism, not the promise. It belongs in
-  the fine print, where it reassures rather than sells.
-- **No stock-photo recruiting imagery.** Empty seats, empty yards, dark yards, a phone
-  screen at 3am — absence is the subject.
-- **The number carries the ad.** This audience runs on cost-per-seat and days-to-fill.
-  Give them arithmetic, not adjectives.
-
-## Claims discipline
-
-The only figures traceable to FleetConnect's own material are **Faith In Transit — 40%
-reduction in hiring waste** and **Freight X Core — AI follow-up via SMS, voice and DM**.
-Both are used once, attributed, and flagged. Every other number in this set is
-structural or explicitly labelled illustrative. No invented stats, no fake testimonials,
-no implied guarantees.
+- **Lead with the question, not the mechanism.** "Who do you need to find?" beats any
+  description of how the system works. The eleven steps are reassurance, not the hook.
+- **Never say "AI"** in a headline — the site itself doesn't lead with it.
+- **The guarantee always ships with its caveat.** It covers delivery and activation, not
+  hires or revenue. Cutting the caveat to make the ad cleaner would misrepresent the offer.
+- **Gold is scarce.** One gradient gesture per piece.
+- No stock recruiting photography, no headsets, no handshakes.
