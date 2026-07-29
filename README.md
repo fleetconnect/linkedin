@@ -9,6 +9,16 @@ Three bodies of work, in the order they were made:
 | [`campaign/CINEMATIC.md`](campaign/CINEMATIC.md) | **Set 3** — the 80/10/10 hero-truck campaign. Current direction. |
 | [`out/campaign/`](out/campaign/) | Rendered pieces from sets 2 and 3 |
 
+**Two brands live in this repo.** Everything above is **Linx Dispatch** — dispatching
+sold to owner-operators. Below is **FleetConnect** — AI-assisted CDL driver recruiting
+sold to fleet owners. Different customer, different pain, deliberately different design
+system. They must never look like the same company.
+
+| Directory | What it is |
+|---|---|
+| [`fleetconnect/`](fleetconnect/) | **FleetConnect** art direction + copy deck |
+| [`out/fc/`](out/fc/) | 6 single ads + 3 six-slide carousels |
+
 **Start with [`campaign/CINEMATIC.md`](campaign/CINEMATIC.md)** — it is the live brief.
 `campaign/ART-DIRECTION.md` holds the craft rules all of it obeys.
 
