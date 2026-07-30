@@ -152,3 +152,33 @@ configured for open deck · `FCO-04` the offer, guarantee caveat included
 Final 4 leads. `F4-01` and the `F4-C1` carousel for cold; `F4-03` and `F4-04` for
 problem-aware; `F4-06` to close. Linx runs only to mixed-equipment targeting.
 FleetConnect runs to carriers and fleets, never to owner-operators.
+
+---
+
+# CINEMATIC HERO PIECES (added after "these look boring")
+
+The all-type set was flat. These are photo-led: full-bleed open-deck photography,
+a brand scrim, and the headline over it — same three brand accents, much more stopping
+power. Pexels stock, commercial-use, no spend. All 4:5 at 2×.
+
+| File | Brand | Image |
+|---|---|---|
+| `H-F4-01-move` | Final 4 | Komatsu grader on a lowboy at a jobsite — *if it can't move legally, it can't move* |
+| `H-F4-02-oversize` | Final 4 | Concrete beam over a line of trucks + **OVERSIZE LOAD** banner |
+| `H-F4-03-rightway` | Final 4 | Backhoe chained to a flatbed — *we move oversize loads, the right way* |
+| `H-F4-04-empty` | Final 4 | Gritty Peterbilt flatbed under a bridge — *an empty deck is a decision, not luck* |
+| `H-LX-01-both` | Linx | Loaded trailer, open road — mixed-equipment message in amber |
+| `H-FC-01-shortlist` | FleetConnect | Logging truck in motion — *you can't post your way to a heavy haul driver* |
+
+**Note on the machinery shots (H-F4-01/03):** the visible KOMATSU / JCB branding is on
+the *cargo being hauled*, not a carrier's livery — that's fine, it's freight. The stock
+rejection rule is about third-party *carrier* branding, which none of these carry.
+
+**One weak plate to swap:** `H-F4H6` under `H-LX-01` is a European MAN cab in a desert.
+It's the least on-brand frame in the set for a US audience. Swap it for a US flatbed
+plate when one's sourced — the layout and copy stay; only the image changes via
+`build/opendeck/gen.py`.
+
+These upgrade, not replace, the type-only pieces — keep both. Photo pieces stop the
+scroll; type pieces carry the detail (`F4-C1` carousel, `F4-03` chains, `F4-05`
+vocabulary) that a photo can't.

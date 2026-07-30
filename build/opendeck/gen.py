@@ -19,7 +19,9 @@ MARK = {
  "fc":  'FLEET<span>CONNECT</span>',
 }
 
-def page(name, theme, *, body, sect, pips=None, swipe=None, css=""):
+def page(name, theme, *, body, sect, pips=None, swipe=None, css="",
+         hero=None, hero_pos="center", scrim="scrim", banner=None):
+    """hero = image filename in assets/hero/ → photo-led cinematic piece."""
     pip = ""
     if pips:
         i, n = pips
@@ -27,12 +29,20 @@ def page(name, theme, *, body, sect, pips=None, swipe=None, css=""):
         pip = f'<div class="pips">{cells}</div>'
         if swipe: pip += f'<div class="swipe">{swipe}</div>'
     fl, fr = FOOT[theme]
-    bloom = '<div class="bloom"></div>' if theme == "fc" else ""
+    photo = ""
+    photo_cls = ""
+    if hero:
+        photo = (f'<div class="hero" style="background-image:url(\'../../assets/hero/{hero}\');'
+                 f'background-position:{hero_pos}"></div>\n  <div class="{scrim}"></div>')
+        photo_cls = " photo"
+        if banner:
+            photo += f'\n  <div class="hero-banner">{banner}</div>'
+    bloom = '<div class="bloom"></div>' if (theme == "fc" and not hero) else ""
     html = f"""<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="_od.css">
 <style>{css}</style></head><body>
-<div class="canvas t-{theme}">
-  {bloom}
+<div class="canvas t-{theme}{photo_cls}">
+  {bloom}{photo}
   <div class="mark">{MARK[theme]}</div>
   <div class="sect">{sect}</div>
   <div class="body">
@@ -46,6 +56,54 @@ def page(name, theme, *, body, sect, pips=None, swipe=None, css=""):
 """
     open(os.path.join(HERE, name), "w").write(html)
     print("  ", name)
+
+
+# ═════════════════════════════════ CINEMATIC HERO PIECES (photo-led)
+
+PH  = " h1{font-size:80px;line-height:.98} .sub{margin-top:22px;max-width:840px;font-size:25px}"
+PHb = " h1{font-size:92px;line-height:.96} .sub{margin-top:22px;max-width:840px;font-size:25px}"
+
+# Final 4 — heavy machinery on a lowboy at a jobsite
+page("H-F4-01-move.html", "f4", sect="Open deck dispatch",
+     hero="F4H1.jpg", hero_pos="50% 42%", css=PHb,
+     body="""    <h1>If it can&rsquo;t move legally,<br><em>it can&rsquo;t move.</em></h1>
+    <div class="sub">Wrong trailer, no permit, wrong day of the week &mdash; a dispatcher who
+      doesn&rsquo;t know open deck is worse than no dispatcher at all.</div>""")
+
+# Final 4 — concrete beam / heavy haul, with the OVERSIZE banner
+page("H-F4-02-oversize.html", "f4", sect="Permits &amp; routing",
+     hero="F4H2.jpg", hero_pos="50% 50%", banner="OVERSIZE LOAD", css=PH,
+     body="""    <h1>Permits. Route surveys.<br>Escorts. Curfews.<br><em>We handle all of it.</em></h1>
+    <div class="sub">Oversize isn&rsquo;t a checkbox. It&rsquo;s a second job &mdash; and it happens
+      before you ever turn a wheel.</div>""")
+
+# Final 4 — backhoe on a flatbed, the specialist close
+page("H-F4-03-rightway.html", "f4", sect="Flatbed · Stepdeck · Heavy haul",
+     hero="F4H3.jpg", hero_pos="50% 44%", css=PHb,
+     body="""    <h1>We move oversize loads,<br><em>the right way.</em></h1>
+    <div class="sub">Flatbed, stepdeck and heavy haul dispatch, nationwide. 25+ years.
+      No forced dispatch. You pick the loads.</div>""")
+
+# Final 4 — empty gritty flatbed under a bridge, the "who's booking this" hook
+page("H-F4-04-empty.html", "f4", sect="Open deck dispatch",
+     hero="F4H4.jpg", hero_pos="50% 46%", css=PHb,
+     body="""    <h1>An empty deck<br><em>is a decision, not luck.</em></h1>
+    <div class="sub">Open deck freight is lumpier than van freight. The weeks your deck stays
+      loaded are the weeks somebody&rsquo;s working the phone before you wake up.</div>""")
+
+# Linx — mixed equipment, the flatbed-and-a-van operator (amber theme over photo)
+page("H-LX-01-both.html", "linx", sect="Mixed equipment",
+     hero="F4H6.jpg", hero_pos="50% 44%", css=PH + " h1{text-transform:uppercase}",
+     body="""    <h1>Flatbed one week.<br>Van the next.<br><em>One dispatcher for both.</em></h1>
+    <div class="sub">Most dispatchers are good at one trailer. If you run more than one,
+      you need someone who keeps all of them loaded.</div>""")
+
+# FleetConnect — recruiting, the road-train/heavy hero (violet-gold over photo)
+page("H-FC-01-shortlist.html", "fc", sect="Open deck recruiting",
+     hero="F4H5.jpg", hero_pos="50% 50%", css=PH,
+     body="""    <h1>You can&rsquo;t post your way<br>to a <em>heavy haul driver.</em></h1>
+    <div class="sub">The operators who can run an RGN and read a permit are already driving
+      for somebody. Every open deck carrier is recruiting from the same short list.</div>""")
 
 
 # ═════════════════════════════════ FINAL 4 — the specialist
