@@ -1,0 +1,112 @@
+/* ============================================================
+   OPEN DECK — flatbed / step deck / heavy haul
+   One canvas, three brand themes. 1080 × 1350 (4:5).
+   See opendeck/BRIEF.md
+   ============================================================ */
+
+/* Linx */
+@font-face{font-family:'Shoulders';src:url('../../assets/fonts/BigShoulders-Bold.ttf');font-weight:700}
+@font-face{font-family:'Instr';src:url('../../assets/fonts/InstrumentSans-Regular.ttf');font-weight:400}
+@font-face{font-family:'Instr';src:url('../../assets/fonts/InstrumentSans-Bold.ttf');font-weight:700}
+@font-face{font-family:'Geist';src:url('../../assets/fonts/GeistMono-Regular.ttf');font-weight:400}
+@font-face{font-family:'Geist';src:url('../../assets/fonts/GeistMono-Bold.ttf');font-weight:700}
+/* FleetConnect */
+@font-face{font-family:'Sora';src:url('../../assets/fonts/Sora-Bold.woff2') format('woff2');font-weight:700}
+@font-face{font-family:'Inter';src:url('../../assets/fonts/Inter-Regular.woff2') format('woff2');font-weight:400}
+@font-face{font-family:'Inter';src:url('../../assets/fonts/Inter-Bold.woff2') format('woff2');font-weight:700}
+/* Final 4 — US highway-signage voice */
+@font-face{font-family:'NatPark';src:url('../../assets/fonts/NationalPark-Bold.ttf');font-weight:700}
+@font-face{font-family:'JB';src:url('../../assets/fonts/JetBrainsMono-Regular.ttf');font-weight:400}
+@font-face{font-family:'JB';src:url('../../assets/fonts/JetBrainsMono-Bold.ttf');font-weight:700}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1350px}
+body{-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+
+.canvas{position:relative;width:1080px;height:1350px;overflow:hidden}
+.body{position:absolute;left:80px;right:80px;top:152px;bottom:132px;z-index:20;
+  display:flex;flex-direction:column}
+.body > *{flex:0 0 auto}
+
+/* ============================ THEME · FINAL 4 ============================ */
+.t-f4{background:#0E1018;color:#EEF2F0;
+  --acc:#3DBE6E;          /* approximate — swap for the real brand green */
+  --dim:#79838F; --hair:rgba(238,242,240,.14); --panel:#181927}
+.t-f4 .mark{font-family:'NatPark';font-weight:700;font-size:19px;letter-spacing:.16em}
+.t-f4 .mark span{color:var(--acc)}
+.t-f4 h1{font-family:'NatPark';font-weight:700;line-height:1.0;letter-spacing:-.018em}
+.t-f4 h1 em{font-style:normal;color:var(--acc)}
+.t-f4 .sub{font-family:'Instr';font-size:26px;line-height:1.46;letter-spacing:-.01em;color:rgba(238,242,240,.72)}
+.t-f4 .kick{font-family:'JB';font-weight:700;font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--acc)}
+.t-f4 .num{font-family:'NatPark';font-weight:700;color:var(--acc)}
+/* the segment's own iconography: the oversize banner */
+.t-f4 .banner{display:inline-block;background:#F5C518;color:#0E1018;
+  font-family:'NatPark';font-weight:700;font-size:34px;letter-spacing:.10em;
+  padding:14px 26px 11px;border:4px solid #0E1018;box-shadow:0 0 0 4px #F5C518}
+
+/* ============================ THEME · LINX ============================ */
+.t-linx{background:#0A0F1A;color:#F2EEE5;
+  --acc:#FFB020; --dim:#7C8AA0; --hair:rgba(242,238,229,.15); --panel:#121A2B}
+.t-linx .mark{font-family:'Geist';font-weight:700;font-size:14px;letter-spacing:.34em}
+.t-linx .mark span{color:var(--acc)}
+.t-linx h1{font-family:'Shoulders';font-weight:700;text-transform:uppercase;
+  line-height:.88;letter-spacing:-.004em}
+.t-linx h1 em{font-style:normal;color:var(--acc)}
+.t-linx .sub{font-family:'Instr';font-size:26px;line-height:1.44;letter-spacing:-.012em;color:rgba(242,238,229,.74)}
+.t-linx .kick{font-family:'Geist';font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc)}
+.t-linx .num{font-family:'Shoulders';font-weight:700;color:var(--acc)}
+
+/* ============================ THEME · FLEETCONNECT ============================ */
+.t-fc{background:#08060f;color:#E6DEF5;
+  --acc:#d4b678; --dim:#6b5f8c; --hair:rgba(220,212,234,.14); --panel:#17102b}
+.t-fc .bloom{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 70% at 50% -8%, rgba(168,130,220,.28) 0%, rgba(8,6,15,0) 66%)}
+.t-fc .mark{font-family:'Sora';font-weight:700;font-size:15px;letter-spacing:.30em}
+.t-fc .mark span{color:var(--acc)}
+.t-fc h1{font-family:'Sora';font-weight:700;line-height:1.02;letter-spacing:-.036em}
+.t-fc h1 em{font-style:normal;
+  background:linear-gradient(90deg,#e7cf98,#d4b678,#c4a566);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.t-fc .sub{font-family:'Inter';font-size:26px;line-height:1.5;letter-spacing:-.008em;color:rgba(220,212,234,.70)}
+.t-fc .kick{font-family:'Inter';font-weight:700;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc)}
+.t-fc .num{font-family:'Sora';font-weight:700;color:var(--acc)}
+
+/* ============================ SHARED CHROME ============================ */
+.mark{position:absolute;top:62px;left:80px;z-index:30}
+.sect{position:absolute;top:64px;right:80px;z-index:30;
+  font-size:12.5px;letter-spacing:.20em;text-transform:uppercase;color:var(--dim);
+  font-family:'Instr',sans-serif}
+.foot{position:absolute;left:80px;right:80px;bottom:56px;z-index:30;
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+  font-family:'Instr',sans-serif}
+.foot b{color:var(--acc);font-weight:700}
+
+.rule{height:1px;background:var(--hair)}
+
+/* ledger rows */
+.rows{width:100%}
+.row{display:flex;align-items:baseline;gap:20px;padding:20px 0;border-bottom:1px solid var(--hair)}
+.row:last-child{border-bottom:none}
+.row .n{font-family:'Instr';font-size:13px;letter-spacing:.12em;color:var(--dim);width:34px;flex:0 0 34px}
+.row .t{flex:1;font-family:'Instr';font-size:24px;letter-spacing:-.012em;line-height:1.34}
+.row .v{font-size:19px;font-weight:700;letter-spacing:.04em;white-space:nowrap;color:var(--acc);
+  font-family:'Instr',sans-serif}
+
+/* stat strip */
+.strip{display:flex;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+.strip .cell{flex:1;padding:26px 22px 24px 0;border-right:1px solid var(--hair)}
+.strip .cell:last-child{border-right:none}
+.strip .cell:not(:first-child){padding-left:24px}
+.strip .v{font-size:44px;line-height:.96;letter-spacing:-.02em}
+.strip .k{font-family:'Instr';font-size:12.5px;letter-spacing:.08em;color:var(--dim);margin-top:12px;line-height:1.55}
+
+/* carousel chrome */
+.pips{position:absolute;left:80px;bottom:106px;z-index:30;display:flex;gap:7px}
+.pips i{display:block;width:26px;height:3px;background:rgba(255,255,255,.20)}
+.pips i.on{background:var(--acc)}
+.swipe{position:absolute;right:80px;bottom:100px;z-index:30;
+  font-family:'Instr';font-size:12.5px;letter-spacing:.20em;text-transform:uppercase;color:var(--dim)}
+
+.grain{position:absolute;inset:0;pointer-events:none;z-index:80;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>")}
