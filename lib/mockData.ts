@@ -52,6 +52,9 @@ export interface Reservation {
   source: BookingSource;
   paymentStatus: PaymentStatus;
   notes: string;
+  /** Set once a front-desk checkout has been processed. Kept separate from
+   *  `status` so the calendar legend stays limited to the 5 core statuses. */
+  checkedOut?: boolean;
 }
 
 export type FollowUpStatus = "None" | "Due" | "Scheduled" | "Completed";
@@ -344,6 +347,13 @@ export const activityLogSeed: ActivityLogItem[] = [
   { id: "a7", icon: "wrench", minutesAgo: 205, staff: "Maintenance — Pedro", description: "Added a maintenance block on Bungalow 6 for AC compressor repair." },
   { id: "a8", icon: "note", minutesAgo: 260, staff: "Owner — Kalei", description: "Added a guest note on Yolanda Batista's profile ahead of her VIP arrival." },
 ];
+
+// ---------------------------------------------------------------------------
+// Tax
+// ---------------------------------------------------------------------------
+
+/** Dominican Republic tourism tax (ITBIS), applied to room folios. */
+export const ITBIS_RATE = 0.18;
 
 // ---------------------------------------------------------------------------
 // Pricing intelligence

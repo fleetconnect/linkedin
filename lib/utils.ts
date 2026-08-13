@@ -30,6 +30,60 @@ export function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Inverse of dateFromOffset: turns a "YYYY-MM-DD" string into a day-offset from today. */
+export function offsetFromISODate(iso: string, base: Date = new Date()): number {
+  const today = new Date(base);
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(iso + "T00:00:00");
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+/** Deterministic, human-friendly confirmation code derived from a reservation id. */
+export function confirmationCode(reservationId: string): string {
+  const digits = reservationId.replace(/\D/g, "");
+  const num = digits ? parseInt(digits.slice(-4), 10) : 0;
+  return `KB-${1000 + (num % 9000)}`;
+}
+
+/** Nights × rate, plus tax, for a reservation folio. */
+export function computeFolio(nights: number, rate: number, taxRate: number) {
+  const subtotal = Math.max(nights, 1) * rate;
+  const tax = subtotal * taxRate;
+  return { nights: Math.max(nights, 1), subtotal, tax, total: subtotal + tax };
+}
+
+/** True if any reservation on `roomId` overlaps [startOffset, endOffset). */
+export function hasOffsetConflict(
+  reservations: { roomId: string; startOffset: number; endOffset: number }[],
+  roomId: string,
+  startOffset: number,
+  endOffset: number,
+  ignoreId?: string,
+  idOf?: (r: { roomId: string; startOffset: number; endOffset: number }) => string
+) {
+  return reservations.some((r) => {
+    if (r.roomId !== roomId) return false;
+    if (ignoreId && idOf && idOf(r) === ignoreId) return false;
+    return r.startOffset < endOffset && r.endOffset > startOffset;
+  });
+}
+
+/** Rolling occupancy % per day for the next `days` offsets, given rooms + reservations. */
+export function computeOccupancyForecast(
+  totalRooms: number,
+  reservations: { roomId: string; startOffset: number; endOffset: number }[],
+  days: number
+): number[] {
+  const forecast: number[] = [];
+  for (let offset = 0; offset < days; offset++) {
+    const occupiedRoomIds = new Set(
+      reservations.filter((r) => r.startOffset <= offset && r.endOffset > offset).map((r) => r.roomId)
+    );
+    forecast.push(totalRooms > 0 ? Math.round((100 * occupiedRoomIds.size) / totalRooms) : 0);
+  }
+  return forecast;
+}
+
 export function formatDateShort(d: Date): string {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }

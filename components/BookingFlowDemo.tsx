@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Icon } from "./Icon";
-import { roomTypeOptions, RoomType } from "@/lib/mockData";
-import { cn, toISODate, dateFromOffset } from "@/lib/utils";
+import { RoomType, RoomTypeOption } from "@/lib/mockData";
+import { cn, toISODate, dateFromOffset, formatCurrency } from "@/lib/utils";
 
 const STEPS = ["Dates", "Room Type", "Guest Details", "Review"] as const;
 
@@ -16,7 +16,13 @@ interface GuestDetails {
 
 const emptyGuest: GuestDetails = { name: "", email: "", phone: "", notes: "" };
 
-export function BookingFlowDemo({ notify }: { notify: (message: string) => void }) {
+export function BookingFlowDemo({
+  roomTypeOptions,
+  notify,
+}: {
+  roomTypeOptions: RoomTypeOption[];
+  notify: (message: string) => void;
+}) {
   const [step, setStep] = useState(0);
   const [checkIn, setCheckIn] = useState(toISODate(dateFromOffset(3)));
   const [checkOut, setCheckOut] = useState(toISODate(dateFromOffset(6)));
@@ -64,7 +70,9 @@ export function BookingFlowDemo({ notify }: { notify: (message: string) => void 
           </div>
           <div>
             <p className="text-xs text-cream/45">Estimated Total</p>
-            <p className="font-medium text-cream">${selectedOption ? selectedOption.rate * nights : "—"}</p>
+            <p className="font-medium text-cream">
+              {selectedOption ? formatCurrency(selectedOption.rate * nights) : "—"}
+            </p>
           </div>
         </div>
 
@@ -153,7 +161,7 @@ export function BookingFlowDemo({ notify }: { notify: (message: string) => void 
                 >
                   <div className={cn("relative h-28 w-full", opt.gradient)}>
                     <span className="absolute right-2 top-2 rounded-full bg-deep-navy/70 px-2.5 py-1 text-xs font-semibold text-cream">
-                      ${opt.rate}/night
+                      {formatCurrency(opt.rate)}/night
                     </span>
                   </div>
                   <div className="flex flex-1 flex-col gap-2 bg-navy/70 p-4">
@@ -239,8 +247,11 @@ export function BookingFlowDemo({ notify }: { notify: (message: string) => void 
             <div className="grid grid-cols-1 gap-4 rounded-lg bg-deep-navy/50 p-4 text-sm sm:grid-cols-2">
               <Row label="Dates" value={`${checkIn} → ${checkOut} (${nights}n)`} />
               <Row label="Room Type" value={roomType ?? "—"} />
-              <Row label="Rate" value={selectedOption ? `$${selectedOption.rate}/night` : "—"} />
-              <Row label="Estimated Total" value={selectedOption ? `$${selectedOption.rate * nights}` : "—"} />
+              <Row label="Rate" value={selectedOption ? `${formatCurrency(selectedOption.rate)}/night` : "—"} />
+              <Row
+                label="Estimated Total"
+                value={selectedOption ? formatCurrency(selectedOption.rate * nights) : "—"}
+              />
               <Row label="Guest" value={guest.name || "—"} />
               <Row label="Contact" value={[guest.email, guest.phone].filter(Boolean).join(" · ") || "—"} />
               {guest.notes && <div className="sm:col-span-2"><Row label="Notes" value={guest.notes} /></div>}

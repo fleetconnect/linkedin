@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AppShell, ToastItem } from "@/components/AppShell";
 import { SectionKey } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
@@ -20,16 +20,19 @@ import {
   HousekeepingTask,
   Reservation,
   Room,
+  RoomType,
+  RoomTypeOption,
   activityLogSeed,
   demoRoles,
   guests as guestsSeed,
   housekeepingTasksSeed,
   overviewStats,
   reservations as reservationsSeed,
+  roomTypeOptions as roomTypeOptionsSeed,
   rooms as roomsSeed,
   todaysPulse,
 } from "@/lib/mockData";
-import { formatCurrency } from "@/lib/utils";
+import { computeOccupancyForecast, formatCurrency, formatMonthDay, dateFromOffset } from "@/lib/utils";
 
 let toastId = 0;
 
@@ -44,6 +47,7 @@ export default function HomePage() {
   const [reservations, setReservations] = useState<Reservation[]>(reservationsSeed);
   const [guests, setGuests] = useState<Guest[]>(guestsSeed);
   const [housekeepingTasks, setHousekeepingTasks] = useState<HousekeepingTask[]>(housekeepingTasksSeed);
+  const [roomTypeOptions, setRoomTypeOptions] = useState<RoomTypeOption[]>(roomTypeOptionsSeed);
   const [activityLog, setActivityLog] = useState<ActivityLogItem[]>(activityLogSeed);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -89,6 +93,15 @@ export default function HomePage() {
     notify(`Checked in ${res.guestName} to ${res.roomNumber}.`, "check-in");
   }
 
+  function handleCheckOut(reservationId: string) {
+    const res = reservations.find((r) => r.id === reservationId);
+    if (!res || res.status !== "Checked In" || res.checkedOut) return;
+    setReservations((prev) => prev.map((r) => (r.id === reservationId ? { ...r, checkedOut: true } : r)));
+    // Cross-module effect: checkout hands the room straight to housekeeping.
+    updateRoom(res.roomId, { status: "Dirty", cleaningStatus: "Dirty", currentGuest: undefined });
+    notify(`${res.guestName} checked out of ${res.roomNumber} — room marked dirty for housekeeping.`, "history");
+  }
+
   function handleAddNote(reservationId: string) {
     const res = reservations.find((r) => r.id === reservationId);
     if (!res) return;
@@ -126,6 +139,20 @@ export default function HomePage() {
     notify(`Follow-up marked completed for ${guest.name}.`, "check");
   }
 
+  function handleCreateReservation(newRes: Reservation) {
+    setReservations((prev) => [...prev, newRes]);
+    const nights = newRes.endOffset - newRes.startOffset;
+    notify(
+      `New reservation created for ${newRes.guestName} — ${newRes.roomNumber}, ${nights} night${nights === 1 ? "" : "s"}.`,
+      "calendar-plus"
+    );
+  }
+
+  function handleUpdateRoomTypeRate(type: RoomType, rate: number) {
+    setRoomTypeOptions((prev) => prev.map((opt) => (opt.type === type ? { ...opt, rate } : opt)));
+    notify(`${type} base rate updated to ${formatCurrency(rate)}/night.`, "trending-up");
+  }
+
   if (view === "landing") {
     return <LandingScreen onEnter={enterDashboard} />;
   }
@@ -140,7 +167,7 @@ export default function HomePage() {
       toasts={toasts}
     >
       {activeSection === "overview" && (
-        <OverviewSection activityLog={activityLog} />
+        <OverviewSection activityLog={activityLog} rooms={rooms} reservations={reservations} />
       )}
       {activeSection === "calendar" && (
         <ReservationCalendar
@@ -148,9 +175,11 @@ export default function HomePage() {
           reservations={reservations}
           searchQuery={searchQuery}
           onCheckIn={handleCheckIn}
+          onCheckOut={handleCheckOut}
           onAddNote={handleAddNote}
           onSendWhatsApp={handleSendWhatsApp}
           onViewGuestProfile={handleViewGuestProfile}
+          onCreateReservation={handleCreateReservation}
         />
       )}
       {activeSection === "rooms" && (
@@ -167,8 +196,10 @@ export default function HomePage() {
           onCompleteFollowUp={handleCompleteFollowUp}
         />
       )}
-      {activeSection === "pricing" && <PricingDashboard />}
-      {activeSection === "booking" && <BookingFlowDemo notify={notify} />}
+      {activeSection === "pricing" && (
+        <PricingDashboard roomTypeOptions={roomTypeOptions} onUpdateRate={handleUpdateRoomTypeRate} />
+      )}
+      {activeSection === "booking" && <BookingFlowDemo roomTypeOptions={roomTypeOptions} notify={notify} />}
       {activeSection === "channels" && <ChannelMap />}
       {activeSection === "housekeeping" && (
         <HousekeepingBoard tasks={housekeepingTasks} onUpdateTask={updateHousekeepingTask} notify={notify} />
@@ -178,7 +209,17 @@ export default function HomePage() {
   );
 }
 
-function OverviewSection({ activityLog }: { activityLog: ActivityLogItem[] }) {
+function OverviewSection({
+  activityLog,
+  rooms,
+  reservations,
+}: {
+  activityLog: ActivityLogItem[];
+  rooms: Room[];
+  reservations: Reservation[];
+}) {
+  const forecast = useMemo(() => computeOccupancyForecast(rooms.length, reservations, 7), [rooms, reservations]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -228,6 +269,29 @@ function OverviewSection({ activityLog }: { activityLog: ActivityLogItem[] }) {
             visibility, and follow-up. The goal is to test the workflow beside existing systems before replacing
             anything critical.
           </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl2 border border-white/5 bg-navy/60 p-5 shadow-card">
+        <p className="flex items-center gap-2 text-sm font-semibold text-cream">
+          <Icon name="chart" className="h-4 w-4 text-gold" />
+          Occupancy Forecast · Next 7 Nights
+        </p>
+        <div className="mt-5 flex h-32 items-end gap-2 sm:gap-3">
+          {forecast.map((pct, i) => (
+            <div key={i} className="flex flex-1 flex-col items-center gap-2">
+              <div className="flex h-full w-full items-end overflow-hidden rounded-t-md bg-white/5">
+                <div
+                  className={`w-full rounded-t-md ${i === 0 ? "bg-gold" : "bg-teal"}`}
+                  style={{ height: `${Math.max(pct, 4)}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-mono text-cream/45">{pct}%</span>
+              <span className="text-[10px] text-cream/40">
+                {i === 0 ? "Today" : formatMonthDay(dateFromOffset(i))}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 

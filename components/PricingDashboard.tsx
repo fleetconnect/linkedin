@@ -2,10 +2,16 @@
 
 import { Icon } from "./Icon";
 import { StatCard } from "./StatCard";
-import { aiPricingNotes, competitors, pricingSnapshot } from "@/lib/mockData";
-import { timeAgo } from "@/lib/utils";
+import { RoomTypeOption, aiPricingNotes, competitors, pricingSnapshot } from "@/lib/mockData";
+import { formatCurrency, timeAgo } from "@/lib/utils";
 
-export function PricingDashboard() {
+export function PricingDashboard({
+  roomTypeOptions,
+  onUpdateRate,
+}: {
+  roomTypeOptions: RoomTypeOption[];
+  onUpdateRate: (type: RoomTypeOption["type"], rate: number) => void;
+}) {
   const maxRate = Math.max(pricingSnapshot.todayADR, pricingSnapshot.competitorAvg, pricingSnapshot.suggestedRate) * 1.1;
 
   return (
@@ -79,6 +85,43 @@ export function PricingDashboard() {
         </div>
       </div>
 
+      {/* Editable base rates */}
+      <div className="rounded-xl2 border border-white/5 bg-navy/60 p-5 shadow-card">
+        <p className="flex items-center gap-2 text-sm font-semibold text-cream">
+          <Icon name="tag" className="h-4 w-4 text-gold" />
+          Kaoba Base Rates
+        </p>
+        <p className="mt-1 text-xs text-cream/50">
+          Set Hotel Kaoba's own nightly rate by room type — separate from the competitor rates above.
+        </p>
+        <div className="mt-4 divide-y divide-white/5">
+          {roomTypeOptions.map((opt) => (
+            <div key={opt.type} className="flex flex-wrap items-center gap-3 py-3">
+              <div className="min-w-[160px] flex-1">
+                <p className="text-sm font-medium text-cream">{opt.type}</p>
+                <p className="text-xs text-cream/45">{opt.description}</p>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <span className="text-cream/50">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={opt.rate}
+                  onChange={(e) => onUpdateRate(opt.type, Math.max(0, Number(e.target.value) || 0))}
+                  className="w-24 rounded-lg border border-white/10 bg-deep-navy/60 px-3 py-2 text-right font-mono text-cream focus:border-gold/50 focus:outline-none"
+                  aria-label={`${opt.type} nightly rate`}
+                />
+                <span className="text-cream/45">/night</span>
+              </label>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-cream/45">
+          Rates apply to new bookings going forward. Existing reservations keep the rate they were booked at. ITBIS{" "}
+          18% is added at the folio.
+        </p>
+      </div>
+
       <div className="rounded-xl2 border border-white/10 bg-navy/40 px-4 py-3 text-xs text-cream/45">
         <span className="font-semibold text-cream/60">Disclaimer:</span> Pricing data in this MVP is mock data for
         demonstration. A production version would require approved data sources, integrations, or manual/automated
@@ -94,7 +137,7 @@ function RateBar({ label, value, max, color }: { label: string; value: number; m
     <div>
       <div className="mb-1 flex items-center justify-between text-xs text-cream/60">
         <span>{label}</span>
-        <span className="font-semibold text-cream">${value}</span>
+        <span className="font-semibold text-cream">{formatCurrency(value)}</span>
       </div>
       <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/5">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
